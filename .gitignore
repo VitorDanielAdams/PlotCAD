@@ -1,0 +1,21 @@
+.env
+
+# Build results
+[Bb]in/
+[Oo]bj/
+*.exe
+*.dll
+*.pdb
+
+# User-specific files
+*.rsuser
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+
+# DotNet runtime artifacts
+.dotnet/
+.nuget/
+*.nupkg
