@@ -2,7 +2,7 @@
 {
     public abstract class AuditableEntity : BaseEntity
     {
-        public string CreatedBy { get; set; }
+        public int? CreatedBy { get; set; }
         public string? UpdatedBy { get; set; }
         public string? DeletedBy { get; set; }
     }

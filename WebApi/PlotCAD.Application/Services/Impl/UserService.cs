@@ -1,44 +1,37 @@
 ﻿using AutoMapper;
-using BCrypt.Net;
-using PlotCAD.Application.DTOs.Auth;
 using PlotCAD.Application.DTOs.User;
 using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.Domain.Enums;
+using System.Security.Authentication;
 
 namespace PlotCAD.Application.Services.Impl
 {
     public class UserService : IUserService
     {
-        private const int WorkFactor = 12;
+        private readonly ICurrentUserService _currentUserService;
         private readonly IUserRepository _userRepository;
-        private readonly ITokenService _tokenService;
         private readonly IMapper _mapper;
 
-        public UserService(IUserRepository userRepository, ITokenService tokenService, IMapper mapper)
+        public UserService(ICurrentUserService currentUserService, IUserRepository userRepository, IMapper mapper)
         {
+            _currentUserService = currentUserService;
             _userRepository = userRepository;
-            _tokenService = tokenService;
             _mapper = mapper;
         }
 
-        public async Task<LoginResponse> AuthenticateAsync(LoginRequest request, CancellationToken cancellationToken = default)
+        public async Task<UserResponse> GetCurrenUserAsync(CancellationToken cancellationToken)
         {
-            var user = await _userRepository.GetByEmailAsync(request.Login);
+            if (_currentUserService.UserId == null)
+                throw new AuthenticationException("Invalid Token");
+
+            var user = await _userRepository.GetByIdAsync(_currentUserService.UserId.Value, cancellationToken);
             if (user == null)
-                throw new UnauthorizedAccessException("Invalid credentials");
-
-            var valid = await this.VerifyPassword(user.PasswordHash, request.Password);
-            if (!valid)
-                throw new UnauthorizedAccessException("Invalid Password");
-
-            var token = await _tokenService.GenerateToken(user);
-            if (token == null) 
-                throw new ApplicationException("Generate token failed.");
+                throw new Exception("User not found");
 
             var userResponse = _mapper.Map<UserResponse>(user);
 
-            return new LoginResponse(token, userResponse);
+            return userResponse;
         }
 
         public Task DeleteAsync(int id, CancellationToken cancellationToken = default)
@@ -69,18 +62,6 @@ namespace PlotCAD.Application.Services.Impl
         public Task<IEnumerable<UserResponse>> GetUsersByRoleAsync(Role role, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
-        }
-
-        public Task<string> HashPassword(string password)
-        {
-            string hash = BCrypt.Net.BCrypt.EnhancedHashPassword(password, HashType.SHA384, workFactor: WorkFactor);
-            return Task.FromResult(hash);
-        }
-
-        public Task<bool> VerifyPassword(string hashedPassword, string providedPassword)
-        {
-            bool isValid = BCrypt.Net.BCrypt.EnhancedVerify(providedPassword, hashedPassword);
-            return Task.FromResult(isValid);
         }
     }
 }

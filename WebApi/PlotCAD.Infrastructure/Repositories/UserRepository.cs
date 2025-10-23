@@ -49,7 +49,6 @@ namespace PlotCAD.Infrastructure.Repositories
         public override async Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         {
             return await ApplySoftDeleteFilter(_dbSet)
-                .Include(u => u.WorkShift)
                 .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
         }
     }

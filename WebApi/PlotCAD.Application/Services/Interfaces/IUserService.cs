@@ -6,9 +6,7 @@ namespace PlotCAD.Application.Services.Interfaces
 {
     public interface IUserService
     {
-        Task<LoginResponse> AuthenticateAsync(LoginRequest request, CancellationToken cancellationToken = default);
-        Task<string> HashPassword(string password);
-        Task<bool> VerifyPassword(string hashedPassword, string providedPassword);
+        Task<UserResponse> GetCurrenUserAsync(CancellationToken cancellationToken = default);
         Task<UserResponse> GetByIdAsync(int id, CancellationToken cancellationToken = default);
         Task<IEnumerable<UserResponse>> GetAllAsync(CancellationToken cancellationToken = default);
         Task<IEnumerable<UserResponse>> GetAllActiveAsync(CancellationToken cancellationToken = default);

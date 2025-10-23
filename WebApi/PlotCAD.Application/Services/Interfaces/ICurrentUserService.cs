@@ -5,13 +5,11 @@ namespace PlotCAD.Application.Services.Interfaces
     public interface ICurrentUserService
     {
         int? UserId { get; }
-        string UserName { get; }
-        string Email { get; }
         Role? Role { get; }
-        int? TenantId { get; }
+        Guid? TenantId { get; }
         bool IsAuthenticated { get; }
-        int GetTenantId();
-        void SetUser(int userId, string userName, string email, Role role, int tenantId);
+        Guid GetTenantId();
+        void SetUser(int userId, Role role, Guid tenantId);
         void ClearUser();
     }
 }

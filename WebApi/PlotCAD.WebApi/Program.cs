@@ -1,10 +1,10 @@
-using PlotCAD.Infrastructure;
-using PlotCAD.Infrastructure.Contexts;
-using PlotCAD.WebApi.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using PlotCAD.Infrastructure;
+using PlotCAD.Infrastructure.Contexts;
+using PlotCAD.WebApi.Middleware;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -64,6 +64,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Issuer"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var token = context.Request.Cookies["Token"];
+
+                if (!string.IsNullOrEmpty(token) && token.StartsWith("Bearer "))
+                    token = token.Substring("Bearer ".Length);
+
+                context.Token = token;
+                return Task.CompletedTask;
+            }
+        };
     });
 #endregion
 
@@ -98,6 +111,21 @@ builder.Services.AddSwaggerGen(c =>
 });
 #endregion
 
+#region Cors
+var allowedOrigins = builder.Configuration.GetSection("Frontend:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy
+            .WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+#endregion
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
@@ -116,10 +144,13 @@ if (app.Environment.IsDevelopment())
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "PlotCAD API");
         c.RoutePrefix = string.Empty;
+        c.ConfigObject.AdditionalItems["withCredentials"] = true;
     });
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();

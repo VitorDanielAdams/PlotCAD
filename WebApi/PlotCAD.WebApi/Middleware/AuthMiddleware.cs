@@ -16,7 +16,7 @@ namespace PlotCAD.WebApi.Middleware
         {
 
             if (context.Request.Headers.TryGetValue("X-Tenant-Key", out var tenantKey) &&
-                int.TryParse(tenantKey, out var tenantId))
+                Guid.TryParse(tenantKey, out var tenantId))
             {
                 if (context.User?.Identity?.IsAuthenticated == true)
                 {
@@ -27,7 +27,7 @@ namespace PlotCAD.WebApi.Middleware
             await _next(context);
         }
 
-        private void InitializeCurrentUser(HttpContext context, ICurrentUserService currentUserService, int tenantId)
+        private void InitializeCurrentUser(HttpContext context, ICurrentUserService currentUserService, Guid tenantId)
         {
             var user = context.User;
 
@@ -38,12 +38,6 @@ namespace PlotCAD.WebApi.Middleware
                 return;
             }
 
-            var name = user.FindFirst(ClaimTypes.Name)?.Value ??
-                user.FindFirst("name")?.Value;
-  
-            var email = user.FindFirst(ClaimTypes.Email)?.Value ??
-                user.FindFirst("email")?.Value;
-
             var roleClaim = user.FindFirst(ClaimTypes.Role)?.Value ??
                 user.FindFirst("role")?.Value;
 
@@ -51,7 +45,7 @@ namespace PlotCAD.WebApi.Middleware
                 ? parsedRole
                 : Role.Employee;
 
-            currentUserService.SetUser(userId, name, email, role, tenantId);
+            currentUserService.SetUser(userId, role, tenantId);
         }
     }
 }

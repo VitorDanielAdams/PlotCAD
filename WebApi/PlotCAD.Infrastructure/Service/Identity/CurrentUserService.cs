@@ -13,13 +13,11 @@ namespace PlotCAD.Infrastructure.Service.Identity
         }
 
         public int? UserId { get; private set; }
-        public string UserName { get; private set; } = string.Empty;
-        public string Email { get; private set; } = string.Empty;
         public Role? Role { get; private set; }
-        public int? TenantId { get; private set; }
+        public Guid? TenantId { get; private set; }
         public bool IsAuthenticated => UserId.HasValue && TenantId.HasValue;
 
-        public void SetUser(int userId, string userName, string email, Role role, int tenantId)
+        public void SetUser(int userId, Role role, Guid tenantId)
         {
             UserId = userId;
             Role = role;
@@ -33,11 +31,11 @@ namespace PlotCAD.Infrastructure.Service.Identity
             TenantId = null;
         }
 
-        public int GetTenantId()
+        public Guid GetTenantId()
         {
             if (!TenantId.HasValue)
             {
-                if (int.TryParse(_configuration["DefaultTenantKey"], out var defaultTenantId))
+                if (Guid.TryParse(_configuration["DefaultTenantKey"], out var defaultTenantId))
                 {
                     TenantId = defaultTenantId;
                 }

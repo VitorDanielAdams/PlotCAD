@@ -15,12 +15,12 @@ namespace PlotCAD.Application.Services.Interfaces
         {
             _configuration = configuration;
         }
-        public Task<string>? GenerateToken(User player)
+        public string? GenerateToken(User player)
         {
             var claims = new[]
             {
-                new Claim(ClaimTypes.Email, player.Email),
-                new Claim(ClaimTypes.NameIdentifier, player.Id.ToString())
+                new Claim(ClaimTypes.NameIdentifier, player.Id.ToString()),
+                new Claim(ClaimTypes.Role, player.Role.ToString())
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
@@ -30,10 +30,10 @@ namespace PlotCAD.Application.Services.Interfaces
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Issuer"],
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(30),
+                expires: DateTime.Now.AddDays(1),
                 signingCredentials: creds);
 
-            return Task.FromResult($"Bearer {new JwtSecurityTokenHandler().WriteToken(token)}");
+            return $"Bearer {new JwtSecurityTokenHandler().WriteToken(token)}";
         }
     }
 }
