@@ -28,7 +28,7 @@ namespace PlotCAD.Application.Services.Impl
 
             var valid = await this.VerifyPassword(user.PasswordHash, request.Password);
             if (!valid)
-                throw new UnauthorizedAccessException("Invalid Password");
+                throw new UnauthorizedAccessException("Invalid credentials");   
 
             var token = _tokenService.GenerateToken(user);
             if (token == null)

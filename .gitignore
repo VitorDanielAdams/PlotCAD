@@ -1,5 +1,10 @@
 .env
 
+# Secrets
+appsettings.Production.json
+*.secrets.json
+secrets.json
+
 # Build results
 [Bb]in/
 [Oo]bj/

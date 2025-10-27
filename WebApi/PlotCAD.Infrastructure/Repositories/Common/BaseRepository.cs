@@ -1,9 +1,10 @@
 ﻿using PlotCAD.Application.Repositories.Common;
+using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.Domain.Entities.Common;
 using PlotCAD.Infrastructure.Contexts;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
-
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace PlotCAD.Infrastructure.Repositories.Common
 {
@@ -16,6 +17,12 @@ namespace PlotCAD.Infrastructure.Repositories.Common
         {
             _context = context;
             _dbSet = context.Set<T>();
+        }
+
+        protected virtual int? GetCurrentUserId()
+        {
+            var currentUserService = _context.GetService(typeof(ICurrentUserService)) as ICurrentUserService;
+            return currentUserService?.UserId;
         }
 
         protected virtual IQueryable<T> ApplySoftDeleteFilter(IQueryable<T> query)
@@ -50,12 +57,23 @@ namespace PlotCAD.Infrastructure.Repositories.Common
             entity.UpdatedAt = DateTime.UtcNow;
             entity.DeletedAt = null;
 
+            if (entity is AuditableEntity auditableEntity && auditableEntity.CreatedBy == null)
+            {
+                auditableEntity.CreatedBy = GetCurrentUserId();
+            }
+
             await _dbSet.AddAsync(entity, cancellationToken);
         }
 
         public virtual void Update(T entity)
         {
             entity.UpdatedAt = DateTime.UtcNow;
+
+            if (entity is AuditableEntity auditableEntity && auditableEntity.UpdatedBy == null)
+            {
+                auditableEntity.UpdatedBy = GetCurrentUserId()?.ToString();
+            }
+
             _dbSet.Update(entity);
             _context.Entry(entity).State = EntityState.Modified;
         }
@@ -64,6 +82,11 @@ namespace PlotCAD.Infrastructure.Repositories.Common
         {
             entity.DeletedAt = DateTime.UtcNow;
             entity.UpdatedAt = DateTime.UtcNow;
+
+            if (entity is AuditableEntity auditableEntity && auditableEntity.DeletedBy == null)
+            {
+                auditableEntity.DeletedBy = GetCurrentUserId()?.ToString();
+            }
 
             _dbSet.Update(entity);
             _context.Entry(entity).State = EntityState.Modified;
@@ -158,6 +181,10 @@ namespace PlotCAD.Infrastructure.Repositories.Common
 
         public virtual async Task<IEnumerable<T>> ListPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
         {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 10;
+            if (pageSize > 100) pageSize = 100;
+            
             return await ApplySoftDeleteFilter(_dbSet)
                 .AsNoTracking()
                 .Skip((pageNumber - 1) * pageSize)
@@ -167,6 +194,10 @@ namespace PlotCAD.Infrastructure.Repositories.Common
 
         public virtual async Task<IEnumerable<T>> ListPagedAsync(int pageNumber, int pageSize, Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
         {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 10;
+            if (pageSize > 100) pageSize = 100;
+            
             return await ApplySoftDeleteFilter(_dbSet)
                 .AsNoTracking()
                 .Where(predicate)

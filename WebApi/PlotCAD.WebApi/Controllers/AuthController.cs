@@ -2,6 +2,7 @@
 using PlotCAD.Application.DTOs.Auth;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.WebApi.Reponses;
+using System.Security.Authentication;
 
 namespace PlotCAD.WebApi.Controllers
 {
@@ -10,10 +11,12 @@ namespace PlotCAD.WebApi.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, ILogger<AuthController> logger)
         {
             _authService = authService;
+            _logger = logger;
         }
 
         [HttpPost("login")]
@@ -28,9 +31,20 @@ namespace PlotCAD.WebApi.Controllers
                 AddTokenToCookie(response.Token);
                 return Ok(ApiResponse<object>.Ok());
             }
+            catch (UnauthorizedAccessException)
+            {
+                _logger.LogWarning("Failed login attempt for user: {Login}", request.Login);
+                return Unauthorized(ApiResponse<object>.Fail("Invalid credentials"));
+            }
+            catch (AuthenticationException ex)
+            {
+                _logger.LogWarning(ex, "Authentication error for user: {Login}", request.Login);
+                return Unauthorized(ApiResponse<object>.Fail(ex.Message));
+            }
             catch (Exception ex)
             {
-                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+                _logger.LogError(ex, "Error during authentication for user: {Login}", request.Login);
+                return StatusCode(500, ApiResponse<object>.Fail("An error occurred during authentication"));
             }
         }
 
@@ -40,7 +54,9 @@ namespace PlotCAD.WebApi.Controllers
             {
                 HttpOnly = true,
                 Expires = DateTime.UtcNow.AddDays(2),
-                SameSite = SameSiteMode.None,
+                SameSite = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development"
+                    ? SameSiteMode.None
+                    : SameSiteMode.Lax,
                 Secure = true,
                 IsEssential = true
             };
