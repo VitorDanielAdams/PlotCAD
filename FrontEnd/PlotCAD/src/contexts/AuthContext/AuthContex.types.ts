@@ -3,8 +3,6 @@ import { IUserResponseDto } from "../../types/users.types";
 
 export interface User {
   id: number;
-  name: string;
-	email: string;
 	role: string;
 }
 

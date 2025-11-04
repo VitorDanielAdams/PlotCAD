@@ -4,11 +4,13 @@ import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { IUserResponseDto } from "../../types/users.types";
 import UserApi from "../../api/User";
+import Loading from "../../components/Loading";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);		
+  const [user, setUser] = useState<User | null>(null);
+	const [loading, setLoading] = useState(true);
 	const { getCurrentUser } = UserApi();
 
 	const navigate = useNavigate();
@@ -16,17 +18,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 	useEffect(() => {
 		const fetchCurrentUser = async () => {
-			if (user === null) {
-				const userResponse = await getCurrentUser();
-				if (userResponse.success && userResponse.data !== null) {
-					setUser({
-						id: (userResponse.data as IUserResponseDto).Id,
-						email: (userResponse.data as IUserResponseDto).Email,
-						name: (userResponse.data as IUserResponseDto).Name,
-						role: (userResponse.data as IUserResponseDto).Role
-					});
-				}
-			}
+			const token = Cookies.get("token");
+			if (token) {
+        setLoading(false);
+        return;
+      }
+
+			try {
+        const userResponse = await getCurrentUser();
+        if (userResponse.success && userResponse.data) {
+          const data = userResponse.data as IUserResponseDto;
+          setUser({ id: data.Id, role: data.Role });
+        } else {
+          Cookies.remove("token");
+        }
+      } catch (error) {
+        console.error("Error fetching current user:", error);
+        Cookies.remove("token");
+      } finally {
+        setLoading(false);
+      }
 		};
 		fetchCurrentUser();
 	}, []);
@@ -34,28 +45,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	const setCurrentUser = (user: IUserResponseDto) => {
 		setUser({
 			id: user.Id,
-			email: user.Email,
-			name: user.Name,
 			role: user.Role
 		});
 	};
 
 	const logout = () => {
+		Cookies.remove("token");
     setUser(null);
     navigate("/");
 	};
 
 	return (
 		<AuthContext.Provider
-			value={{ 
-				isAuthenticated, 
-				user, 
+			value={{
+				isAuthenticated,
+				user,
 				setCurrentUser,
-				logout, 
+				logout,
 				refreshUser: async () => {}
 			}}
 		>
-			{children}
+			{loading ? (
+        <Loading />
+      ) : (
+        children
+      )}
 		</AuthContext.Provider>
 	);
 };

@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import useAuth from "../../contexts/hooks/useAuth";
 import AuthApi from "../../api/Auth";
 import UserApi from "../../api/User";
-import logo from "/logo.png";
+	import logo from "/logo.png";
 import { IUserResponseDto } from "../../types/users.types";
 
 const Login = () => {
@@ -21,14 +21,14 @@ const Login = () => {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
-	
+
 	const onSubmit = async (data: LoginFormData) => {
 		const response = await login(data);
 		if (response.success) {
       const userResponse = await getCurrentUser();
 			if (userResponse.success && userResponse.data !== null) {
 				setCurrentUser(userResponse.data as IUserResponseDto)
-				navigate("home")
+				navigate("/v1/home")
 			}
 		}
   };
@@ -70,7 +70,7 @@ const Login = () => {
 								<p className="text-red-500 text-sm mt-1">{errors.password?.message}</p>
 							)}
 						</div>
-						
+
 						<button 
 							type="submit" 
 							disabled={isSubmitting}
