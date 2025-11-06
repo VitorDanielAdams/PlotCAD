@@ -10,7 +10,7 @@ export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
 	setCurrentUser: (user: IUserResponseDto) => void;
-  logout: () => void;
+  handleLogout: () => void;
   refreshUser: () => Promise<void>;
 }
 

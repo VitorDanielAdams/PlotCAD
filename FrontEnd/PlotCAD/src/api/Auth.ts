@@ -8,7 +8,6 @@ const AuthApi = () => {
 	const login = async (body: ILoginRequest): Promise<IResponse<unknown>> => {
 		try {
 			return await api.post(`${path}/login`, body).then((value) => {
-				console.log("User successfully logged in");
 				return value.data;
 			});
 		} catch (error: any) {
@@ -19,7 +18,20 @@ const AuthApi = () => {
 		}
 	};
 
-	return { login };
+	const logout = async (): Promise<IResponse<unknown>> => {
+		try {
+			return await api.post(`${path}/logout`).then((value) => {
+				return value.data;
+			});
+		} catch (error: any) {
+			if (error?.response?.data?.message) {
+				return Promise.reject(error.response.data.error);
+			}
+			return Promise.reject(error.message);
+		}
+	};
+
+	return { login, logout };
 };
 
 export default AuthApi;

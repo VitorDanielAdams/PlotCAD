@@ -6,6 +6,7 @@ import Login from "../pages/Login";
 import HomePage from "../pages/HomePage";
 import Loading from "../components/Loading/Loading";
 import Layout from "../components/Layout";
+import LandRegistration from "../pages/LandRegistration";
 
 export function AppRoutes() {
 	return (
@@ -13,9 +14,7 @@ export function AppRoutes() {
 			<AuthProvider>
 				<Suspense
 					fallback={
-						<div className="w-screen h-screen flex items-center justify-center">
-							<Loading />
-						</div>
+						<Loading />
 					}
 				>
 					<Routes>
@@ -23,6 +22,8 @@ export function AppRoutes() {
 						<Route element={<ProtectedRoute />}>
 							<Route path="/v1" element={<Layout />} >
 								<Route path="home" index element={<HomePage />} />
+								<Route path="matriculas" element={<LandRegistration />} />
+								{/* <Route path="relatorios" element={<HomePage />} /> */}
 							</Route>
 						</Route>
 					</Routes>

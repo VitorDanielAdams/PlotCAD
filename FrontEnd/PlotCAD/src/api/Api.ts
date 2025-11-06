@@ -1,5 +1,5 @@
 import axios from "axios";
-import useAuth from "../contexts/hooks/useAuth";
+import Cookies from "js-cookie";
 
 const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL}/api`,
@@ -8,6 +8,7 @@ const api = axios.create({
 		"Content-Type": "application/json;charset=utf-8",
 	},
 });
+
 
 api.interceptors.request.use(
   (config) => {
@@ -25,9 +26,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-		const { logout } = useAuth();
     if (error.response?.status === 401) {
-      logout();
+			// Cookies.remove("token");
     }
     return Promise.reject(error);
   }

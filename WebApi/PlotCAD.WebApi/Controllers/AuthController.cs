@@ -48,6 +48,25 @@ namespace PlotCAD.WebApi.Controllers
             }
         }
 
+        [HttpPost("logout")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public IActionResult Logout()
+        {
+            Response.Cookies.Delete("Token", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development"
+                    ? SameSiteMode.None
+                    : SameSiteMode.Lax,
+                Path = "/"
+            });
+
+            return Ok(ApiResponse<object>.Ok());
+        }
+
         private void AddTokenToCookie(string token)
         {
             var cookieOptions = new CookieOptions

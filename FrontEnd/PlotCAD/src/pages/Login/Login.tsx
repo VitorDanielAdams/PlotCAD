@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import useAuth from "../../contexts/hooks/useAuth";
 import AuthApi from "../../api/Auth";
 import UserApi from "../../api/User";
-	import logo from "/logo.png";
+import logo from "/logo.png";
 import { IUserResponseDto } from "../../types/users.types";
 
 const Login = () => {

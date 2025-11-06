@@ -1,10 +1,11 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useMemo, useState } from "react";
 import { AuthContextType, AuthProviderProps, User } from "./AuthContex.types";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { IUserResponseDto } from "../../types/users.types";
 import UserApi from "../../api/User";
 import Loading from "../../components/Loading";
+import AuthApi from "../../api/Auth";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -12,31 +13,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
 	const [loading, setLoading] = useState(true);
 	const { getCurrentUser } = UserApi();
+	const { logout } = AuthApi();
 
 	const navigate = useNavigate();
-	const isAuthenticated = !!user;
+	const isAuthenticated = useMemo(() => !!user, [user]);
 
 	useEffect(() => {
 		const fetchCurrentUser = async () => {
-			const token = Cookies.get("token");
-			if (token) {
-        setLoading(false);
-        return;
-      }
-
 			try {
         const userResponse = await getCurrentUser();
         if (userResponse.success && userResponse.data) {
           const data = userResponse.data as IUserResponseDto;
-          setUser({ id: data.Id, role: data.Role });
+          return setUser({ id: data.Id, role: data.Role });
         } else {
-          Cookies.remove("token");
+          return await handleLogout();
         }
       } catch (error) {
         console.error("Error fetching current user:", error);
-        Cookies.remove("token");
+        return await handleLogout();
+				;
       } finally {
-        setLoading(false);
+        return setLoading(false);
       }
 		};
 		fetchCurrentUser();
@@ -49,9 +46,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 		});
 	};
 
-	const logout = () => {
-		Cookies.remove("token");
-    setUser(null);
+	const  handleLogout = async () => {
+		const result = await logout();
+		if (result.success) {
+			setUser(null);
+		}
     navigate("/");
 	};
 
@@ -61,7 +60,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 				isAuthenticated,
 				user,
 				setCurrentUser,
-				logout,
+				handleLogout,
 				refreshUser: async () => {}
 			}}
 		>
