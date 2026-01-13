@@ -1,236 +1,297 @@
-﻿using PlotCAD.Application.Repositories.Common;
+using Dapper;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.Domain.Entities.Common;
-using PlotCAD.Infrastructure.Contexts;
-using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore.Infrastructure;
+using PlotCAD.Infrastructure.Database;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
+using System.Reflection;
 
 namespace PlotCAD.Infrastructure.Repositories.Common
 {
-    public class BaseRepository<T> : IRepository<T> where T : BaseEntity
+    public abstract class BaseRepository<T> where T : BaseEntity
     {
-        protected readonly AppDbContext _context;
-        protected readonly DbSet<T> _dbSet;
+        protected readonly IDbConnectionFactory _connectionFactory;
+        protected readonly ICurrentUserService _currentUserService;
+        protected readonly string _tableName;
 
-        public BaseRepository(AppDbContext context)
+        protected BaseRepository(IDbConnectionFactory connectionFactory, ICurrentUserService currentUserService)
         {
-            _context = context;
-            _dbSet = context.Set<T>();
-        }
-
-        protected virtual int? GetCurrentUserId()
-        {
-            var currentUserService = _context.GetService(typeof(ICurrentUserService)) as ICurrentUserService;
-            return currentUserService?.UserId;
-        }
-
-        protected virtual IQueryable<T> ApplySoftDeleteFilter(IQueryable<T> query)
-        {
-            return query.Where(e => e.DeletedAt == null);
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
+            _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+            _tableName = GetTableName();
         }
 
         public virtual async Task<T?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         {
-            return await ApplySoftDeleteFilter(_dbSet)
-                .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
-        }
+            var sql = $@"
+                SELECT * 
+                FROM {_tableName}
+                WHERE Id = @Id AND {BuildSoftDeleteFilter()}";
 
-        public virtual async Task<IEnumerable<T>> ListAllAsync(CancellationToken cancellationToken = default)
-        {
-            return await ApplySoftDeleteFilter(_dbSet)
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
-        }
-
-        public virtual async Task<IEnumerable<T>> ListWhereAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
-        {
-            return await ApplySoftDeleteFilter(_dbSet)
-                .AsNoTracking()
-                .Where(predicate)
-                .ToListAsync(cancellationToken);
-        }
-
-        public virtual async Task AddAsync(T entity, CancellationToken cancellationToken = default)
-        {
-            entity.CreatedAt = DateTime.UtcNow;
-            entity.UpdatedAt = DateTime.UtcNow;
-            entity.DeletedAt = null;
-
-            if (entity is AuditableEntity auditableEntity && auditableEntity.CreatedBy == null)
-            {
-                auditableEntity.CreatedBy = GetCurrentUserId();
-            }
-
-            await _dbSet.AddAsync(entity, cancellationToken);
-        }
-
-        public virtual void Update(T entity)
-        {
-            entity.UpdatedAt = DateTime.UtcNow;
-
-            if (entity is AuditableEntity auditableEntity && auditableEntity.UpdatedBy == null)
-            {
-                auditableEntity.UpdatedBy = GetCurrentUserId()?.ToString();
-            }
-
-            _dbSet.Update(entity);
-            _context.Entry(entity).State = EntityState.Modified;
-        }
-
-        public virtual void Delete(T entity)
-        {
-            entity.DeletedAt = DateTime.UtcNow;
-            entity.UpdatedAt = DateTime.UtcNow;
-
-            if (entity is AuditableEntity auditableEntity && auditableEntity.DeletedBy == null)
-            {
-                auditableEntity.DeletedBy = GetCurrentUserId()?.ToString();
-            }
-
-            _dbSet.Update(entity);
-            _context.Entry(entity).State = EntityState.Modified;
-        }
-
-        public virtual void Restore(T entity)
-        {
-            entity.DeletedAt = null;
-            entity.UpdatedAt = DateTime.UtcNow;
-
-            _dbSet.Update(entity);
-            _context.Entry(entity).State = EntityState.Modified;
-        }
-
-        public virtual async Task<bool> IsDeletedAsync(int id, CancellationToken cancellationToken = default)
-        {
-            var entity = await _dbSet.AsNoTracking()
-                .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
-
-            return entity?.DeletedAt != null;
-        }
-
-        public virtual async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
-        {
-            return await ApplySoftDeleteFilter(_dbSet)
-                .AnyAsync(e => e.Id == id, cancellationToken);
-        }
-
-        public virtual async Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
-        {
-            return await ApplySoftDeleteFilter(_dbSet)
-                .AnyAsync(predicate, cancellationToken);
-        }
-
-        public virtual async Task<bool> ExistsIncludingDeletedAsync(int id, CancellationToken cancellationToken = default)
-        {
-            return await _dbSet.AnyAsync(e => e.Id == id, cancellationToken);
-        }
-
-        public virtual async Task<bool> ExistsIncludingDeletedAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
-        {
-            return await _dbSet.AnyAsync(predicate, cancellationToken);
-        }
-
-        public virtual async Task<int> CountAsync(CancellationToken cancellationToken = default)
-        {
-            return await ApplySoftDeleteFilter(_dbSet)
-                .CountAsync(cancellationToken);
-        }
-
-        public virtual async Task<int> CountAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
-        {
-            return await ApplySoftDeleteFilter(_dbSet)
-                .CountAsync(predicate, cancellationToken);
-        }
-
-        public virtual async Task<int> CountIncludingDeletedAsync(CancellationToken cancellationToken = default)
-        {
-            return await _dbSet.CountAsync(cancellationToken);
-        }
-
-        public virtual async Task<int> CountIncludingDeletedAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
-        {
-            return await _dbSet.CountAsync(predicate, cancellationToken);
-        }
-
-        public virtual async Task<IEnumerable<T>> ListAllIncludingDeletedAsync(CancellationToken cancellationToken = default)
-        {
-            return await _dbSet.AsNoTracking()
-                .ToListAsync(cancellationToken);
-        }
-
-        public virtual async Task<IEnumerable<T>> ListDeletedAsync(CancellationToken cancellationToken = default)
-        {
-            return await _dbSet.AsNoTracking()
-                .Where(e => e.DeletedAt != null)
-                .ToListAsync(cancellationToken);
-        }
-
-        public virtual async Task<IEnumerable<T>> ListWhereIncludingDeletedAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
-        {
-            return await _dbSet.AsNoTracking()
-                .Where(predicate)
-                .ToListAsync(cancellationToken);
+            return await QueryFirstOrDefaultAsync<T>(sql, new { Id = id, TenantId = GetCurrentTenantId() }, cancellationToken);
         }
 
         public virtual async Task<T?> GetByIdIncludingDeletedAsync(int id, CancellationToken cancellationToken = default)
         {
-            return await _dbSet.AsNoTracking()
-                .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+            var sql = $@"
+                SELECT * 
+                FROM {_tableName}
+                WHERE Id = @Id AND TenantId = @TenantId";
+
+            return await QueryFirstOrDefaultAsync<T>(sql, new { Id = id, TenantId = GetCurrentTenantId() }, cancellationToken);
         }
 
-        public virtual async Task<IEnumerable<T>> ListPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+        public virtual async Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100;
-            
-            return await ApplySoftDeleteFilter(_dbSet)
-                .AsNoTracking()
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(cancellationToken);
+            var sql = $@"
+                SELECT * 
+                FROM {_tableName}
+                WHERE {BuildSoftDeleteFilter()}
+                ORDER BY Id";
+
+            return await QueryAsync<T>(sql, CreateTenantParam(), cancellationToken);
         }
 
-        public virtual async Task<IEnumerable<T>> ListPagedAsync(int pageNumber, int pageSize, Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
+        public virtual async Task<IEnumerable<T>> GetAllIncludingDeletedAsync(CancellationToken cancellationToken = default)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100;
-            
-            return await ApplySoftDeleteFilter(_dbSet)
-                .AsNoTracking()
-                .Where(predicate)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(cancellationToken);
+            var sql = $@"
+                SELECT * 
+                FROM {_tableName}
+                WHERE TenantId = @TenantId
+                ORDER BY Id";
+
+            return await QueryAsync<T>(sql, CreateTenantParam(), cancellationToken);
         }
 
-        public virtual async Task<IEnumerable<T>> ListPagedIncludingDeletedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+        public virtual async Task<IEnumerable<T>> GetDeletedAsync(CancellationToken cancellationToken = default)
         {
-            return await _dbSet.AsNoTracking()
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(cancellationToken);
+            var sql = $@"
+                SELECT * 
+                FROM {_tableName}
+                WHERE DeletedAt IS NOT NULL AND TenantId = @TenantId
+                ORDER BY DeletedAt DESC";
+
+            return await QueryAsync<T>(sql, CreateTenantParam(), cancellationToken);
         }
 
-        public virtual async Task<IEnumerable<T>> ListPagedIncludingDeletedAsync(int pageNumber, int pageSize, Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
+        public virtual async Task<T> AddAsync(T entity, CancellationToken cancellationToken = default)
         {
-            return await _dbSet.AsNoTracking()
-                .Where(predicate)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(cancellationToken);
+            entity.TenantId = GetCurrentTenantId();
+            entity.CreatedAt = DateTimeOffset.UtcNow;
+            entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+            var properties = GetInsertProperties();
+            var columns = string.Join(", ", properties.Select(p => p.Name));
+            var values = string.Join(", ", properties.Select(p => $"@{p.Name}"));
+
+            var sql = $@"
+                INSERT INTO {_tableName} ({columns})
+                VALUES ({values});
+                SELECT LAST_INSERT_ID();";
+
+            var id = await ExecuteScalarAsync<int>(sql, entity, cancellationToken);
+            entity.Id = id;
+
+            return entity;
         }
 
-        public virtual IQueryable<T> GetQueryable()
+        public virtual async Task UpdateAsync(T entity, CancellationToken cancellationToken = default)
         {
-            return ApplySoftDeleteFilter(_dbSet).AsQueryable();
+            entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+            var properties = GetUpdateProperties();
+            var setClause = string.Join(", ", properties.Select(p => $"{p.Name} = @{p.Name}"));
+
+            var sql = $@"
+                UPDATE {_tableName}
+                SET {setClause}
+                WHERE Id = @Id AND {BuildSoftDeleteFilter()}";
+
+            await ExecuteAsync(sql, entity, cancellationToken);
         }
 
-        public virtual IQueryable<T> GetQueryableIncludingDeleted()
+        public virtual async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
         {
-            return _dbSet.AsQueryable();
+            var sql = $@"
+                UPDATE {_tableName}
+                SET DeletedAt = @DeletedAt,
+                    UpdatedAt = @UpdatedAt
+                WHERE Id = @Id AND {BuildSoftDeleteFilter()}";
+
+            await ExecuteAsync(sql, new
+            {
+                Id = id,
+                DeletedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
+                TenantId = GetCurrentTenantId()
+            }, cancellationToken);
+        }
+
+        public virtual async Task RestoreAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var sql = $@"
+                UPDATE {_tableName}
+                SET DeletedAt = NULL,
+                    UpdatedAt = @UpdatedAt
+                WHERE Id = @Id AND TenantId = @TenantId AND DeletedAt IS NOT NULL";
+
+            await ExecuteAsync(sql, new
+            {
+                Id = id,
+                UpdatedAt = DateTimeOffset.UtcNow,
+                TenantId = GetCurrentTenantId()
+            }, cancellationToken);
+        }
+
+        public virtual async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var sql = $@"
+                SELECT COUNT(1)
+                FROM {_tableName}
+                WHERE Id = @Id AND {BuildSoftDeleteFilter()}";
+
+            var count = await ExecuteScalarAsync<int>(sql, new { Id = id, TenantId = GetCurrentTenantId() }, cancellationToken);
+            return count > 0;
+        }
+
+        public virtual async Task<bool> ExistsIncludingDeletedAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var sql = $@"
+                SELECT COUNT(1)
+                FROM {_tableName}
+                WHERE Id = @Id AND TenantId = @TenantId";
+
+            var count = await ExecuteScalarAsync<int>(sql, new { Id = id, TenantId = GetCurrentTenantId() }, cancellationToken);
+            return count > 0;
+        }
+
+        public virtual async Task<bool> IsDeletedAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var sql = $@"
+                SELECT COUNT(1)
+                FROM {_tableName}
+                WHERE Id = @Id AND TenantId = @TenantId AND DeletedAt IS NOT NULL";
+
+            var count = await ExecuteScalarAsync<int>(sql, new { Id = id, TenantId = GetCurrentTenantId() }, cancellationToken);
+            return count > 0;
+        }
+
+        public virtual async Task<int> CountAsync(CancellationToken cancellationToken = default)
+        {
+            var sql = $@"
+                SELECT COUNT(*)
+                FROM {_tableName}
+                WHERE {BuildSoftDeleteFilter()}";
+
+            return await ExecuteScalarAsync<int>(sql, CreateTenantParam(), cancellationToken);
+        }
+
+        public virtual async Task<int> CountIncludingDeletedAsync(CancellationToken cancellationToken = default)
+        {
+            var sql = $@"
+                SELECT COUNT(*)
+                FROM {_tableName}
+                WHERE TenantId = @TenantId";
+
+            return await ExecuteScalarAsync<int>(sql, CreateTenantParam(), cancellationToken);
+        }
+
+        public virtual async Task<int> CountDeletedAsync(CancellationToken cancellationToken = default)
+        {
+            var sql = $@"
+                SELECT COUNT(*)
+                FROM {_tableName}
+                WHERE DeletedAt IS NOT NULL AND TenantId = @TenantId";
+
+            return await ExecuteScalarAsync<int>(sql, CreateTenantParam(), cancellationToken);
+        }
+
+        public virtual async Task<IEnumerable<T>> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default)
+        {
+            var offset = (page - 1) * pageSize;
+            var sql = $@"
+                SELECT * 
+                FROM {_tableName}
+                WHERE {BuildSoftDeleteFilter()}
+                ORDER BY Id
+                LIMIT @PageSize OFFSET @Offset";
+
+            return await QueryAsync<T>(sql,
+                new { PageSize = pageSize, Offset = offset, TenantId = GetCurrentTenantId() },
+                cancellationToken);
+        }
+
+        public virtual async Task<IEnumerable<T>> GetPagedIncludingDeletedAsync(int page, int pageSize, CancellationToken cancellationToken = default)
+        {
+            var offset = (page - 1) * pageSize;
+            var sql = $@"
+                SELECT * 
+                FROM {_tableName}
+                WHERE TenantId = @TenantId
+                ORDER BY Id
+                LIMIT @PageSize OFFSET @Offset";
+
+            return await QueryAsync<T>(sql,
+                new { PageSize = pageSize, Offset = offset, TenantId = GetCurrentTenantId() },
+                cancellationToken);
+        }
+
+        protected async Task<int> ExecuteAsync(string sql, object? param = null, CancellationToken cancellationToken = default)
+        {
+            using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
+            return await connection.ExecuteAsync(sql, param);
+        }
+
+        protected async Task<T?> QueryFirstOrDefaultAsync<TResult>(string sql, object? param = null, CancellationToken cancellationToken = default)
+        {
+            using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
+            return await connection.QueryFirstOrDefaultAsync<T>(sql, param);
+        }
+
+        protected async Task<IEnumerable<TResult>> QueryAsync<TResult>(string sql, object? param = null, CancellationToken cancellationToken = default)
+        {
+            using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
+            return await connection.QueryAsync<TResult>(sql, param);
+        }
+
+        protected async Task<TResult?> ExecuteScalarAsync<TResult>(string sql, object? param = null, CancellationToken cancellationToken = default)
+        {
+            using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
+            return await connection.ExecuteScalarAsync<TResult>(sql, param);
+        }
+
+        protected Guid GetCurrentTenantId() => _currentUserService.GetTenantId();
+
+        protected string BuildSoftDeleteFilter(string tableAlias = "")
+        {
+            var prefix = string.IsNullOrEmpty(tableAlias) ? "" : $"{tableAlias}.";
+            return $"{prefix}DeletedAt IS NULL AND {prefix}TenantId = @TenantId";
+        }
+
+        protected object CreateTenantParam() => new { TenantId = GetCurrentTenantId() };
+
+        private string GetTableName()
+        {
+            var tableAttribute = typeof(T).GetCustomAttribute<TableAttribute>();
+            return tableAttribute?.Name ?? $"{typeof(T).Name}s";
+        }
+
+        private IEnumerable<PropertyInfo> GetInsertProperties()
+        {
+            return typeof(T).GetProperties()
+                .Where(p => p.Name != "Id" &&
+                           p.Name != "IsDeleted" &&
+                           p.CanWrite);
+        }
+
+        private IEnumerable<PropertyInfo> GetUpdateProperties()
+        {
+            return typeof(T).GetProperties()
+                .Where(p => p.Name != "Id" &&
+                           p.Name != "TenantId" &&
+                           p.Name != "CreatedAt" &&
+                           p.Name != "IsDeleted" &&
+                           p.CanWrite);
         }
     }
 }

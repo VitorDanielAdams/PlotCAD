@@ -1,52 +1,24 @@
+using AspNetCoreRateLimit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PlotCAD.Infrastructure;
-using PlotCAD.Infrastructure.Contexts;
 using PlotCAD.WebApi.Middleware;
 using PlotCAD.WebApi.Reponses;
+using Serilog;
 using System.Text;
-using AspNetCoreRateLimit;
-using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
-# region Database Configuration
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-var databaseProvider = builder.Configuration["Database:Provider"] ?? "MySql";
+#region Serilog Configuration
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .CreateLogger();
 
-builder.Services.AddDbContext<AppDbContext>((provider, options) =>
-{
-    switch (databaseProvider.ToLower())
-    {
-        case "mysql":
-            options.UseMySql(
-                connectionString,
-                ServerVersion.AutoDetect(connectionString),
-                sqlOptions =>
-                {
-                    sqlOptions.EnableRetryOnFailure(
-                        maxRetryCount: builder.Configuration.GetValue<int>("Database:MaxRetryCount", 3),
-                        maxRetryDelay: TimeSpan.FromSeconds(5),
-                        errorNumbersToAdd: null
-                    );
-                    sqlOptions.CommandTimeout(builder.Configuration.GetValue<int>("Database:CommandTimeout", 30));
-                });
-            
-            break;
-
-        default:
-            throw new InvalidOperationException($"Database provider '{databaseProvider}' n�o suportado");
-    }
-
-    if (builder.Environment.IsDevelopment())
-    {
-        options.LogTo(Console.WriteLine, LogLevel.Information);
-    }
-});
+builder.Host.UseSerilog();
 #endregion
 
 builder.Services.AddInfrastructureServices(builder.Configuration);
@@ -210,34 +182,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseMiddleware<AuthMiddleware>();
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<LoggingMiddleware>();
 app.MapControllers();
 
+Log.Information("PlotCAD API Starting...");
+
 app.Run();
-
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    try
-    {
-        var context = services.GetRequiredService<AppDbContext>();
-
-        if (app.Environment.IsDevelopment())
-        {
-            await context.Database.MigrateAsync();
-        }
-        else
-        {
-            var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
-            if (pendingMigrations.Any())
-            {
-                Console.WriteLine($"Applying {pendingMigrations.Count()} pending migrations...");
-                await context.Database.MigrateAsync();
-            }
-        }
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Error to applying migrations");
-    }
-}

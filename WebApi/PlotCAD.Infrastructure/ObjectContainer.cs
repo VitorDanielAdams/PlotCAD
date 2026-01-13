@@ -1,9 +1,8 @@
 ﻿using PlotCAD.Application.Repositories;
-using PlotCAD.Application.Repositories.Common;
 using PlotCAD.Application.Services.Impl;
 using PlotCAD.Application.Services.Interfaces;
+using PlotCAD.Infrastructure.Database;
 using PlotCAD.Infrastructure.Repositories;
-using PlotCAD.Infrastructure.Repositories.Common;
 using PlotCAD.Infrastructure.Service.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,26 +11,25 @@ namespace PlotCAD.Infrastructure
 {
     public static class ObjectContainer
     {
-        public static IServiceCollection AddInfrastructureServices(
-            this IServiceCollection services,
-            IConfiguration configuration)
+        public static IServiceCollection AddInfrastructureServices(this IServiceCollection container, IConfiguration configuration)
         {
-            #region Repository
-            // Generic Repository
-            services.AddScoped(typeof(IRepository<>), typeof(BaseRepository<>));
+            container.AddSingleton<IDbConnectionFactory>(sp => 
+                DbConnectionFactoryProvider.CreateFactory(configuration));
 
-            services.AddScoped<IUserRepository, UserRepository>();
+            #region Repository
+            container.AddScoped<IUserRepository, UserRepository>();
+            container.AddScoped<ILandRepository, LandRepository>();
             #endregion
 
             #region Services
-            services.AddScoped<IUserService, UserService>();
-            services.AddScoped<ICurrentUserService, CurrentUserService>();
-            services.AddScoped<ITokenService, TokenService>();
-            services.AddScoped<IAuthService, AuthService>();
-
+            container.AddScoped<IUserService, UserService>();
+            container.AddScoped<ICurrentUserService, CurrentUserService>();
+            container.AddScoped<ITokenService, TokenService>();
+            container.AddScoped<IAuthService, AuthService>();
+            container.AddScoped<ILandService, LandService>();
             #endregion
 
-            return services;
+            return container;
         }
     }
 }

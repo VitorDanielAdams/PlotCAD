@@ -1,10 +1,6 @@
-﻿using PlotCAD.Domain.Entities.Common;
-using System.ComponentModel.DataAnnotations.Schema;
-
-namespace PlotCAD.Domain.Entities
+﻿namespace PlotCAD.Application.DTOs.Land
 {
-    [Table("Lands")]
-    public class LandEntity : AuditableEntity
+    public class LandSaveRequest
     {
         public string Name { get; set; } = string.Empty;
         public int RegistrationNumber { get; set; }
@@ -13,6 +9,6 @@ namespace PlotCAD.Domain.Entities
         public string Location { get; set; } = string.Empty;
         public string Expression { get; set; } = string.Empty;
         public string Path { get; set; } = string.Empty;
-        public bool IsActive { get; set; } = true;
+        public bool IsActive { get; set; }
     }
 }

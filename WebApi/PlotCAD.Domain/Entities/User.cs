@@ -1,8 +1,10 @@
 ﻿using PlotCAD.Domain.Entities.Common;
 using PlotCAD.Domain.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PlotCAD.Domain.Entities
 {
+    [Table("Users")]
     public class User : AuditableEntity
     {
         public required string Name { get; set; }
