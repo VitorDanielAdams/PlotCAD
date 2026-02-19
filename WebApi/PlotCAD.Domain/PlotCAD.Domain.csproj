@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+	<Folder Include="Attributes\" />
 	<Folder Include="Enums\" />
+	<Folder Include="Extensions\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PlotCAD.Common\PlotCAD.Common.csproj" />
   </ItemGroup>
 </Project>

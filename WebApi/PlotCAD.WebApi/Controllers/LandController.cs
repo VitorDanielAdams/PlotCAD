@@ -28,8 +28,8 @@ namespace PlotCAD.WebApi.Controllers
         {
             try
             {
+                var result = await _landService.CreateAsync(request, cancellationToken);
                 return Ok(new ApiResponse<object>());
-
             }
             catch (Exception ex)
             {
@@ -44,7 +44,16 @@ namespace PlotCAD.WebApi.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<ApiResponse<ListResponse<LandListItemResponse>>>> List([FromBody] ListRequest<LandListFilter> request, CancellationToken cancellationToken)
         {
-            return Ok(new ApiResponse<ListResponse<LandListItemResponse>>());
+            try
+            {
+                var result = await _landService.ListAsync(request, cancellationToken);
+                return Ok(ApiResponse<ListResponse<LandListItemResponse>>.Ok(result));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while saving land.");
+                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail("An error occurred while processing your request."));
+            } 
         }
 
         [HttpGet("{id}")]

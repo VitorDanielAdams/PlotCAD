@@ -1,18 +1,30 @@
-import type React from "react"
 import moment from "moment"
 import { MdError } from "react-icons/md"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import type { IColumn, IListProps, columnType } from "./List.types"
 import Loading from "../Loading"
 
-function List(props: IListProps) {
-  const { columns, items, pointer = false, loading, onChangePage, onClick } = props
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50]
 
-  function handleScroll(event: React.UIEvent<HTMLDivElement>) {
-    const target = event.target as HTMLDivElement
-    if (target.scrollHeight - target.scrollTop <= target.clientHeight) {
-      onChangePage && onChangePage()
-    }
+function buildPageNumbers(currentPage: number, totalPages: number): (number | "...")[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1)
   }
+  const pages: (number | "...")[] = [1]
+  const left = currentPage - 1
+  const right = currentPage + 1
+
+  if (left > 2) pages.push("...")
+  for (let p = Math.max(2, left); p <= Math.min(totalPages - 1, right); p++) {
+    pages.push(p)
+  }
+  if (right < totalPages - 1) pages.push("...")
+  pages.push(totalPages)
+  return pages
+}
+
+function List(props: IListProps) {
+  const { columns, items, pointer = false, loading, pagination, onClick } = props
 
   const handleOnClick = (value: boolean | undefined, index: number) => {
     if (value === true && onClick) {
@@ -52,8 +64,15 @@ function List(props: IListProps) {
     })
     .join(" ")
 
+  const totalPages = pagination ? Math.ceil(pagination.totalCount / pagination.pageSize) : 0
+  const pageNumbers = pagination ? buildPageNumbers(pagination.currentPage, totalPages) : []
+  const pageSizeOptions = pagination?.pageSizeOptions ?? DEFAULT_PAGE_SIZE_OPTIONS
+
+  const firstItem = pagination ? (pagination.currentPage - 1) * pagination.pageSize + 1 : 0
+  const lastItem = pagination ? Math.min(pagination.currentPage * pagination.pageSize, pagination.totalCount) : 0
+
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden" onScroll={handleScroll}>
+    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
       <div className="border-b border-gray-200 bg-gray-50">
         <div className="grid gap-4 px-6 py-3" style={{ gridTemplateColumns: gridCols }}>
           {columns.map((column, index) => (
@@ -110,6 +129,68 @@ function List(props: IListProps) {
             </div>
           ))}
       </div>
+
+      {pagination && pagination.totalCount > 0 && !loading && (
+        <div className="border-t border-gray-200 bg-gray-50 px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3 text-sm text-gray-600">
+            <span>
+              {firstItem}–{lastItem} de {pagination.totalCount}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-500">por página:</span>
+              <select
+                value={pagination.pageSize}
+                onChange={(e) => pagination.onPageSizeChange(Number(e.target.value))}
+                className="border border-gray-300 rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-700 focus:border-transparent"
+              >
+                {pageSizeOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => pagination.onPageChange(pagination.currentPage - 1)}
+              disabled={pagination.currentPage === 1}
+              className="p-1.5 rounded text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+
+            {pageNumbers.map((p, i) =>
+              p === "..." ? (
+                <span key={`ellipsis-${i}`} className="px-2 py-1 text-sm text-gray-400 select-none">
+                  …
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => pagination.onPageChange(p as number)}
+                  className={`min-w-[32px] px-2 py-1 rounded text-sm font-medium transition-colors ${
+                    p === pagination.currentPage
+                      ? "bg-green-700 text-white"
+                      : "text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {p}
+                </button>
+              )
+            )}
+
+            <button
+              onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
+              disabled={pagination.currentPage === totalPages}
+              className="p-1.5 rounded text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

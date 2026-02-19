@@ -1,5 +1,4 @@
-﻿using PlotCAD.Infrastructure.Logging.Extensions;
-using System.Text;
+﻿using System.Text;
 
 namespace PlotCAD.WebApi.Middleware
 {

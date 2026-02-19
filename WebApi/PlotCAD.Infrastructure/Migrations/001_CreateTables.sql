@@ -41,17 +41,3 @@ CREATE TABLE IF NOT EXISTS `Lands` (
     INDEX `IX_Lands_IsActive` (`IsActive`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Geometries Table (if needed)
-CREATE TABLE IF NOT EXISTS `Geometries` (
-    `Id` INT AUTO_INCREMENT PRIMARY KEY,
-    `TenantId` CHAR(36) NOT NULL,
-    `LandId` INT NOT NULL,
-    `Type` VARCHAR(50) NOT NULL,
-    `Coordinates` TEXT NOT NULL,
-    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    `UpdatedAt` DATETIME(6) NULL,
-    `DeletedAt` DATETIME(6) NULL,
-    INDEX `IX_Geometries_TenantId` (`TenantId`),
-    INDEX `IX_Geometries_LandId` (`LandId`),
-    FOREIGN KEY (`LandId`) REFERENCES `Lands`(`Id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

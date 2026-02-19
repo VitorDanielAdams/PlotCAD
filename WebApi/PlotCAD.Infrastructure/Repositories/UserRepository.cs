@@ -19,7 +19,7 @@ namespace PlotCAD.Infrastructure.Repositories
         {
             var sql = $@"
                 SELECT Id, TenantId, Name, Email, PasswordHash, Role, IsActive, 
-                       CreatedAt, UpdatedAt, DeletedAt
+                    CreatedAt, UpdatedAt, DeletedAt
                 FROM Users
                 WHERE Email = @Email AND {BuildSoftDeleteFilter()}";
 
@@ -30,7 +30,7 @@ namespace PlotCAD.Infrastructure.Repositories
         {
             var sql = $@"
                 SELECT Id, TenantId, Name, Email, PasswordHash, Role, IsActive, 
-                       CreatedAt, UpdatedAt, DeletedAt
+                    CreatedAt, UpdatedAt, DeletedAt
                 FROM Users
                 WHERE IsActive = @IsActive AND {BuildSoftDeleteFilter()}
                 ORDER BY Name";
@@ -43,7 +43,7 @@ namespace PlotCAD.Infrastructure.Repositories
         {
             var sql = $@"
                 SELECT Id, TenantId, Name, Email, PasswordHash, Role, IsActive, 
-                       CreatedAt, UpdatedAt, DeletedAt
+                    CreatedAt, UpdatedAt, DeletedAt
                 FROM Users
                 WHERE Role = @Role AND {BuildSoftDeleteFilter()}
                 ORDER BY Name";

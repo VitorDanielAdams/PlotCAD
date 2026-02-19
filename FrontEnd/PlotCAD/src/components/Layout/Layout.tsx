@@ -7,6 +7,7 @@ import { FiLogOut } from "react-icons/fi";
 import SideBar from '../SideBar';
 import { useLocation, useNavigate } from "react-router-dom";
 import { FaVectorSquare } from "react-icons/fa";
+import { TbRulerMeasure } from "react-icons/tb";
 import useAuth from '../../contexts/hooks/useAuth';
 
 const Layout: React.FC = () => {
@@ -30,6 +31,12 @@ const Layout: React.FC = () => {
 			icon: <FaVectorSquare size={22} />,
 			selected: location.pathname === `${prefix}/matriculas`,
 			onClick: () => { toggleSidebar(); navigate(`${prefix}/matriculas`) },
+		},
+		{
+			text: "Nova Matrícula",
+			icon: <TbRulerMeasure size={22} />,
+			selected: location.pathname === `${prefix}/nova-matricula`,
+			onClick: () => { toggleSidebar(); navigate(`${prefix}/nova-matricula`) },
 		},
 		// {
 		// 	text: "Dashboards",

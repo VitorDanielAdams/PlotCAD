@@ -1,5 +1,8 @@
 export interface ILandRegistration {
-  id: string
+  id: number
   name: string
-  status: "active" | "inactive"
+  registrationNumber: number
+  location: string
+  totalArea: number
+  isActive: boolean
 }

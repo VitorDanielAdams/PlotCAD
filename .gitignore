@@ -24,3 +24,6 @@ secrets.json
 .dotnet/
 .nuget/
 *.nupkg
+WebApi/PlotCAD.WebApi/logs/
+tmpclaude*
+nul

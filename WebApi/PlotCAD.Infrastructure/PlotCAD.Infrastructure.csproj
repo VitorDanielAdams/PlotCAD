@@ -16,9 +16,12 @@
   <ItemGroup>
     <ProjectReference Include="..\PlotCAD.Application\PlotCAD.Application.csproj" />
     <ProjectReference Include="..\PlotCAD.Domain\PlotCAD.Domain.csproj" />
+    <ProjectReference Include="..\PlotCAD.Common\PlotCAD.Common.csproj" />
   </ItemGroup>
 	
   <ItemGroup>
+    <Folder Include="Logging\Attributes\" />
+    <Folder Include="Logging\Extensions\" />
     <Folder Include="Migrations\" />
     <Folder Include="Repositories\Common\" />
   </ItemGroup>

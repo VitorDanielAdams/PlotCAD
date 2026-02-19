@@ -1,4 +1,12 @@
-﻿namespace PlotCAD.Application.DTOs.Land.List
+namespace PlotCAD.Application.DTOs.Land.List
 {
-    public record LandListItemResponse(string Name, int RegistrationNumber, string Location, int TotalArea, bool IsActive);
+    public record LandListItemResponse(
+        int Id,
+        string Name,
+        string RegistrationNumber,
+        string Location,
+        string Client,
+        decimal TotalArea,
+        bool IsClosed,
+        bool IsActive);
 }

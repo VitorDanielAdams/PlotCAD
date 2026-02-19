@@ -6,7 +6,8 @@ import Login from "../pages/Login";
 import HomePage from "../pages/HomePage";
 import Loading from "../components/Loading/Loading";
 import Layout from "../components/Layout";
-import LandRegistration from "../pages/LandRegistration";
+import LandRegistration from "../pages/LandRegistration"
+import LandDraw from "../pages/LandDraw";
 
 export function AppRoutes() {
 	return (
@@ -23,6 +24,7 @@ export function AppRoutes() {
 							<Route path="/v1" element={<Layout />} >
 								<Route path="home" index element={<HomePage />} />
 								<Route path="matriculas" element={<LandRegistration />} />
+								<Route path="nova-matricula" element={<LandDraw />} />
 								{/* <Route path="relatorios" element={<HomePage />} /> */}
 							</Route>
 						</Route>

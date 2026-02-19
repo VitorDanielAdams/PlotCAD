@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PlotCAD.Application\PlotCAD.Application.csproj" />
     <ProjectReference Include="..\PlotCAD.Infrastructure\PlotCAD.Infrastructure.csproj" />
+    <ProjectReference Include="..\PlotCAD.Common\PlotCAD.Common.csproj" />
   </ItemGroup>
 
 </Project>

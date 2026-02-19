@@ -16,6 +16,7 @@
 		
   <ItemGroup>
     <ProjectReference Include="..\PlotCAD.Domain\PlotCAD.Domain.csproj" />
+    <ProjectReference Include="..\PlotCAD.Common\PlotCAD.Common.csproj" />
   </ItemGroup>
 
 </Project>

@@ -14,6 +14,15 @@ export interface IColumn<T> {
   onRender?: (item: T) => ReactNode | string | number
 }
 
+export interface IPagination {
+  totalCount: number
+  currentPage: number
+  pageSize: number
+  pageSizeOptions?: number[]
+  onPageChange: (page: number) => void
+  onPageSizeChange: (pageSize: number) => void
+}
+
 export interface IListProps {
   columns: IColumn<any>[]
   items: any[]
@@ -22,6 +31,6 @@ export interface IListProps {
   pointer?: boolean
   isScreenSmall?: boolean
   emptyMessage: string
-  onChangePage?: (page?: number) => void
+  pagination?: IPagination
   onClick?: (index: string | number) => void
 }
