@@ -94,5 +94,19 @@ namespace PlotCAD.Application.Services.Impl
 
             return response;
         }
+
+        public async Task<LandResponse?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("{MethodName} - Id: {Id}", nameof(GetByIdAsync), id);
+
+            var land = await _landRepository.GetByIdAsync(id, cancellationToken);
+            if (land == null) return null;
+
+            var segments = await _landRepository.GetSegmentsByLandIdAsync(id, cancellationToken);
+            var response = _mapper.Map<LandResponse>(land);
+            response.Segments = _mapper.Map<IEnumerable<LandSegmentResponse>>(segments);
+
+            return response;
+        }
     }
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react"
-import type { ISegment, IDrawPoint, IRegistration, CardinalDirection } from "./LandDraw.types"
+import type { ISegment, IDrawPoint, IRegistration, CardinalDirection, IParsedBearing } from "./LandDraw.types"
 
 export const CARDINAL_OPTIONS: CardinalDirection[] = ["N", "S", "E", "O", "NE", "NO", "SE", "SO"]
 
@@ -63,14 +63,6 @@ export function computeArea(points: IDrawPoint[]): number {
 
 const DIRECTION_PATTERN = "(NO|NE|SO|SE|[NSEO])"
 const BEARING_REGEX = new RegExp(`^${DIRECTION_PATTERN}(\\d{4,6})${DIRECTION_PATTERN}$`, "i")
-
-export interface IParsedBearing {
-  from: CardinalDirection
-  to: CardinalDirection
-  degrees: number
-  minutes: number
-  seconds: number
-}
 
 export function parseBearingInput(raw: string): IParsedBearing | null {
   const match = raw.trim().match(BEARING_REGEX)

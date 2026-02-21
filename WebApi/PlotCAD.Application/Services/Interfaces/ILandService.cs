@@ -8,5 +8,6 @@ namespace PlotCAD.Application.Services.Interfaces
     {
         Task<LandResponse> CreateAsync(LandSaveRequest request, CancellationToken cancellationToken = default);
         Task<ListResponse<LandListItemResponse>> ListAsync(ListRequest<LandListFilter> args, CancellationToken cancellationToken = default);
+        Task<LandResponse?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     }
 }

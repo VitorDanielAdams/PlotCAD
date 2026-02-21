@@ -1,8 +1,8 @@
 import { createContext, useEffect, useMemo, useState } from "react";
-import { AuthContextType, AuthProviderProps, User } from "./AuthContex.types";
+import { AuthContextType, AuthProviderProps, IUser } from "./AuthContex.types";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
-import { IUserResponseDto } from "../../types/users.types";
+import { IUserResponse } from "../../types/users.types";
 import UserApi from "../../api/User";
 import Loading from "../../components/Loading";
 import AuthApi from "../../api/Auth";
@@ -10,7 +10,7 @@ import AuthApi from "../../api/Auth";
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<IUser | null>(null);
 	const [loading, setLoading] = useState(true);
 	const { getCurrentUser } = UserApi();
 	const { logout } = AuthApi();
@@ -23,7 +23,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 			try {
         const userResponse = await getCurrentUser();
         if (userResponse.success && userResponse.data) {
-          const data = userResponse.data as IUserResponseDto;
+          const data = userResponse.data as IUserResponse;
           return setUser({ id: data.Id, role: data.Role });
         } else {
           return await handleLogout();
@@ -39,7 +39,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 		fetchCurrentUser();
 	}, []);
 
-	const setCurrentUser = (user: IUserResponseDto) => {
+	const setCurrentUser = (user: IUserResponse) => {
 		setUser({
 			id: user.Id,
 			role: user.Role

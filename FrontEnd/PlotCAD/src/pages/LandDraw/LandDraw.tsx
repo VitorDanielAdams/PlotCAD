@@ -1,10 +1,13 @@
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useLandDraw } from "./LandDraw.hooks"
 import CanvasOverlay from "./components/CanvasOverlay"
 import LandDrawSidenav from "./components/LandDrawSidenav"
+import KmlExportModal from "../../components/KmlExportModal"
 
 const LandDraw = () => {
   const navigate = useNavigate()
+  const [showKmlExport, setShowKmlExport] = useState(false)
 
   const {
     segments,
@@ -65,8 +68,16 @@ const LandDraw = () => {
           formatBearing={formatBearing}
           onSave={handleSave}
           onCancel={() => navigate("/v1/matriculas")}
+          onExportKml={() => setShowKmlExport(true)}
         />
       )}
+      <KmlExportModal
+        isOpen={showKmlExport}
+        onClose={() => setShowKmlExport(false)}
+        segments={segments}
+        landName={registration.name}
+        isClosed={isClosed}
+      />
     </div>
   )
 }

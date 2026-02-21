@@ -1,4 +1,5 @@
-export type CardinalDirection = "N" | "S" | "E" | "O" | "NE" | "NO" | "SE" | "SO"
+export type { CardinalDirection } from "../../types/land.types"
+import type { CardinalDirection } from "../../types/land.types"
 
 export interface ISegment {
   id: string
@@ -23,4 +24,12 @@ export interface IRegistration {
 export interface IDrawPoint {
   x: number
   y: number
+}
+
+export interface IParsedBearing {
+  from: CardinalDirection
+  to: CardinalDirection
+  degrees: number
+  minutes: number
+  seconds: number
 }

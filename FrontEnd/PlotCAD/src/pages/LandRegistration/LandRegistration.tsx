@@ -1,20 +1,24 @@
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Search, Filter, MoreVertical } from "lucide-react"
-import type { ILandRegistration } from "./LandRegistration.types"
+import { Search, Filter, MoreVertical, Loader2 } from "lucide-react"
+import type { ILandListItem, IKmlSegment, CardinalDirection, ILandDetail } from "../../types/land.types"
 import { IColumn } from "../../components/List/List.types"
 import List from "../../components/List"
-import { listLands } from "../../api/Land"
+import { listLands, getLandById } from "../../api/Land"
 import { useNavigate } from "react-router-dom"
+import KmlExportModal from "../../components/KmlExportModal"
 
 const LandRegistration = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [openMenuId, setOpenMenuId] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
-  const [registrations, setRegistrations] = useState<ILandRegistration[]>([])
+  const [registrations, setRegistrations] = useState<ILandListItem[]>([])
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [totalCount, setTotalCount] = useState(0)
+
+  const [kmlModal, setKmlModal] = useState<{ segments: IKmlSegment[]; name: string; isClosed: boolean } | null>(null)
+  const [kmlLoadingId, setKmlLoadingId] = useState<number | null>(null)
 
   const navigate = useNavigate();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -39,7 +43,7 @@ const LandRegistration = () => {
         filter: name.trim() ? { name: name.trim() } : undefined,
       })
       if (response?.data) {
-        const data = response.data as { totalCount: number; items: ILandRegistration[] }
+        const data = response.data as { totalCount: number; items: ILandListItem[] }
         setTotalCount(data.totalCount)
         setRegistrations(data.items)
       }
@@ -57,7 +61,28 @@ const LandRegistration = () => {
     setPage(1)
   }
 
-  const columns: IColumn<ILandRegistration>[] = [
+  const handleExportKml = async (item: ILandListItem) => {
+    setOpenMenuId(null)
+    setKmlLoadingId(item.id)
+    try {
+      const response = await getLandById(item.id)
+      const land = response?.data as ILandDetail
+      if (!land) return
+      const segments: IKmlSegment[] = land.segments.map(s => ({
+        from: s.fromDirection as CardinalDirection,
+        to: s.toDirection as CardinalDirection,
+        degrees: s.degrees,
+        minutes: s.minutes,
+        seconds: s.seconds,
+        distance: s.distance,
+      }))
+      setKmlModal({ segments, name: land.name, isClosed: land.isClosed })
+    } finally {
+      setKmlLoadingId(null)
+    }
+  }
+
+  const columns: IColumn<ILandListItem>[] = [
     {
       title: "Nome",
       name: "name",
@@ -90,7 +115,7 @@ const LandRegistration = () => {
       name: "isActive",
       maxSize: 100,
       align: "center",
-      onRender: (item: ILandRegistration) => (
+      onRender: (item: ILandListItem) => (
         <div
           className={`flex items-center justify-center w-6 h-6 rounded-full ${item.isActive ? "bg-[#22c55e]" : "bg-gray-300"}`}
         >
@@ -113,7 +138,7 @@ const LandRegistration = () => {
       name: "id",
       maxSize: 80,
       align: "center",
-      onRender: (item: ILandRegistration) => (
+      onRender: (item: ILandListItem) => (
         <div className="relative">
           <button
             onClick={(e) => {
@@ -122,7 +147,9 @@ const LandRegistration = () => {
             }}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
           >
-            <MoreVertical className="h-4 w-4" />
+            {kmlLoadingId === item.id
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <MoreVertical className="h-4 w-4" />}
           </button>
           {openMenuId === item.id && (
             <>
@@ -145,6 +172,12 @@ const LandRegistration = () => {
                   className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                 >
                   Editar
+                </button>
+                <button
+                  onClick={() => handleExportKml(item)}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  Exportar KML
                 </button>
                 <button
                   onClick={() => {
@@ -214,6 +247,13 @@ const LandRegistration = () => {
           }}
         />
       </div>
+      <KmlExportModal
+        isOpen={kmlModal !== null}
+        onClose={() => setKmlModal(null)}
+        segments={kmlModal?.segments ?? []}
+        landName={kmlModal?.name ?? ""}
+        isClosed={kmlModal?.isClosed ?? false}
+      />
     </div>
   )
 }

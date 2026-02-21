@@ -58,11 +58,23 @@ namespace PlotCAD.WebApi.Controllers
 
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<ApiResponse<LandResponse>>> Get(int id, CancellationToken cancellationToken)
         {
-            return Ok(new ApiResponse<LandResponse>());
+            try
+            {
+                var result = await _landService.GetByIdAsync(id, cancellationToken);
+                if (result == null)
+                    return NotFound(ApiResponse<object>.Fail("Land not found."));
+
+                return Ok(ApiResponse<LandResponse>.Ok(result));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting land {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
         }
     }
 }

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Plus, Save, X } from "lucide-react"
+import { Plus, Save, X, FileDown } from "lucide-react"
 import { MAX_SEGMENTS } from "../../LandDraw.hooks"
 import type { ISegment, IRegistration } from "../../LandDraw.types"
 import SegmentsTab from "./SegmentsTab"
@@ -23,6 +23,7 @@ interface Props {
   formatBearing: (seg: ISegment) => string
   onSave: () => void
   onCancel: () => void
+  onExportKml: () => void
 }
 
 const LandDrawSidenav = ({
@@ -41,6 +42,7 @@ const LandDrawSidenav = ({
   formatBearing,
   onSave,
   onCancel,
+  onExportKml,
 }: Props) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>("segments")
 
@@ -127,6 +129,15 @@ const LandDrawSidenav = ({
               {isClosed ? "Fechado" : "Aberto"}
             </p>
           </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={onExportKml}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-gray-100 text-gray-600 text-xs font-semibold rounded border border-gray-300 transition-colors w-full"
+          >
+            <FileDown className="h-3.5 w-3.5" />
+            Exportar KML
+          </button>
         </div>
         <div className="flex gap-2">
           <button

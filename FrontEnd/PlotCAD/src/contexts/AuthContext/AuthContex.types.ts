@@ -1,15 +1,15 @@
 import { ReactNode } from "react";
-import { IUserResponseDto } from "../../types/users.types";
+import { IUserResponse } from "../../types/users.types";
 
-export interface User {
+export interface IUser {
   id: number;
 	role: string;
 }
 
 export interface AuthContextType {
-  user: User | null;
+  user: IUser | null;
   isAuthenticated: boolean;
-	setCurrentUser: (user: IUserResponseDto) => void;
+	setCurrentUser: (user: IUserResponse) => void;
   handleLogout: () => void;
   refreshUser: () => Promise<void>;
 }
