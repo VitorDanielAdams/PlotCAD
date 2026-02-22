@@ -1,27 +1,23 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Suspense } from "react";
-import { AuthProvider } from "../contexts/AuthContext/AuthContext";
-import ProtectedRoute from "./ProtectedRoute";
-import Login from "../pages/Login";
-import HomePage from "../pages/HomePage";
-import Loading from "../components/Loading/Loading";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Layout from "../components/Layout";
-import LandRegistration from "../pages/LandRegistration"
+import Loading from "../components/Loading/Loading";
+import { AuthProvider } from "../contexts/AuthContext/AuthContext";
+import HomePage from "../pages/HomePage";
 import LandDraw from "../pages/LandDraw";
+import LandRegistration from "../pages/LandRegistration";
+import Login from "../pages/Login";
+import ProtectedRoute from "./ProtectedRoute";
 
 export function AppRoutes() {
 	return (
 		<BrowserRouter>
 			<AuthProvider>
-				<Suspense
-					fallback={
-						<Loading />
-					}
-				>
+				<Suspense fallback={<Loading />}>
 					<Routes>
 						<Route path="/" element={<Login />} />
 						<Route element={<ProtectedRoute />}>
-							<Route path="/v1" element={<Layout />} >
+							<Route path="/v1" element={<Layout />}>
 								<Route path="home" index element={<HomePage />} />
 								<Route path="matriculas" element={<LandRegistration />} />
 								<Route path="nova-matricula" element={<LandDraw />} />
@@ -32,5 +28,5 @@ export function AppRoutes() {
 				</Suspense>
 			</AuthProvider>
 		</BrowserRouter>
-);
+	);
 }

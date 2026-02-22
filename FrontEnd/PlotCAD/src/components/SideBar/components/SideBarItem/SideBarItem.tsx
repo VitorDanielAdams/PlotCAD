@@ -3,11 +3,12 @@ import { ISiderBarItemProps } from "./SideBarItem.types";
 const SideBarItem = (props: ISiderBarItemProps) => {
 	return (
 		<div
-			className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer 
+			className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer
 				transition-all duration-300 ease-in-out
-				${props.selected 
-					? "bg-green-500 text-white shadow-sm" 
-					: "text-gray-700 hover:bg-gray-100"
+				${
+					props.selected
+						? "bg-green-500 text-white shadow-sm"
+						: "text-gray-700 hover:bg-gray-100"
 				}
 				${props.classname || ""}
 			`}

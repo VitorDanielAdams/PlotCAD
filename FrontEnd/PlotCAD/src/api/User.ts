@@ -1,7 +1,5 @@
 import { IResponse } from "../types/common.types";
-import {
-	IUserResponse,
-} from "../types/users.types";
+import { IUserResponse } from "../types/users.types";
 import api from "./Api";
 
 const UserApi = () => {

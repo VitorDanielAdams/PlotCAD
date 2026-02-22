@@ -1,16 +1,15 @@
 import { createContext, useEffect, useMemo, useState } from "react";
-import { AuthContextType, AuthProviderProps, IUser } from "./AuthContex.types";
 import { useNavigate } from "react-router-dom";
-import Cookies from "js-cookie";
-import { IUserResponse } from "../../types/users.types";
+import AuthApi from "../../api/Auth";
 import UserApi from "../../api/User";
 import Loading from "../../components/Loading";
-import AuthApi from "../../api/Auth";
+import { IUserResponse } from "../../types/users.types";
+import { AuthContextType, AuthProviderProps, IUser } from "./AuthContex.types";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<IUser | null>(null);
+	const [user, setUser] = useState<IUser | null>(null);
 	const [loading, setLoading] = useState(true);
 	const { getCurrentUser } = UserApi();
 	const { logout } = AuthApi();
@@ -21,20 +20,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	useEffect(() => {
 		const fetchCurrentUser = async () => {
 			try {
-        const userResponse = await getCurrentUser();
-        if (userResponse.success && userResponse.data) {
-          const data = userResponse.data as IUserResponse;
-          return setUser({ id: data.Id, role: data.Role });
-        } else {
-          return await handleLogout();
-        }
-      } catch (error) {
-        console.error("Error fetching current user:", error);
-        return await handleLogout();
-				;
-      } finally {
-        return setLoading(false);
-      }
+				const userResponse = await getCurrentUser();
+				if (userResponse.success && userResponse.data) {
+					const data = userResponse.data as IUserResponse;
+					return setUser({ id: data.Id, role: data.Role });
+				} else {
+					return await handleLogout();
+				}
+			} catch (error) {
+				console.error("Error fetching current user:", error);
+				return await handleLogout();
+			} finally {
+				return setLoading(false);
+			}
 		};
 		fetchCurrentUser();
 	}, []);
@@ -42,16 +40,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	const setCurrentUser = (user: IUserResponse) => {
 		setUser({
 			id: user.Id,
-			role: user.Role
+			role: user.Role,
 		});
 	};
 
-	const  handleLogout = async () => {
+	const handleLogout = async () => {
 		const result = await logout();
 		if (result.success) {
 			setUser(null);
 		}
-    navigate("/");
+		navigate("/");
 	};
 
 	return (
@@ -61,14 +59,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 				user,
 				setCurrentUser,
 				handleLogout,
-				refreshUser: async () => {}
+				refreshUser: async () => {},
 			}}
 		>
-			{loading ? (
-        <Loading />
-      ) : (
-        children
-      )}
+			{loading ? <Loading /> : children}
 		</AuthContext.Provider>
 	);
 };
