@@ -1,4 +1,5 @@
 using Dapper;
+using PlotCAD.Application.DTOs.User;
 using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.Domain.Entities;
@@ -15,10 +16,22 @@ namespace PlotCAD.Infrastructure.Repositories
         {
         }
 
+        public async Task<User?> GetByEmailForLoginAsync(string email, CancellationToken cancellationToken = default)
+        {
+            const string sql = @"
+                SELECT Id, TenantId, Name, Email, PasswordHash, Role, IsActive,
+                    CreatedAt, UpdatedAt, DeletedAt
+                FROM Users
+                WHERE Email = @Email AND DeletedAt IS NULL AND IsActive = 1";
+
+            using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
+            return await connection.QueryFirstOrDefaultAsync<User>(sql, new { Email = email });
+        }
+
         public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
         {
             var sql = $@"
-                SELECT Id, TenantId, Name, Email, PasswordHash, Role, IsActive, 
+                SELECT Id, TenantId, Name, Email, PasswordHash, Role, IsActive,
                     CreatedAt, UpdatedAt, DeletedAt
                 FROM Users
                 WHERE Email = @Email AND {BuildSoftDeleteFilter()}";
@@ -113,6 +126,116 @@ namespace PlotCAD.Infrastructure.Repositories
                 UpdatedAt = DateTimeOffset.UtcNow,
                 TenantId = GetCurrentTenantId()
             }, cancellationToken);
+        }
+
+        public async Task<IEnumerable<User>> GetPagedAsync(int page, int pageSize, UserListFilter? filter, CancellationToken cancellationToken = default)
+        {
+            var offset = (page - 1) * pageSize;
+            var whereClause = GetListFilterWhere(filter);
+
+            var sql = $@"
+                SELECT Id, TenantId, Name, Email, PasswordHash, Role, IsActive,
+                    CreatedAt, UpdatedAt, DeletedAt
+                FROM Users
+                WHERE {BuildSoftDeleteFilter()}
+                  AND ({whereClause})
+                ORDER BY Name
+                LIMIT @PageSize OFFSET @Offset";
+
+            var parameters = BuildFilterParameters(filter);
+            parameters.Add("PageSize", pageSize);
+            parameters.Add("Offset", offset);
+            parameters.Add("TenantId", GetCurrentTenantId());
+
+            return await QueryAsync<User>(sql, parameters, cancellationToken);
+        }
+
+        public async Task<int> GetCountAsync(UserListFilter? filter, CancellationToken cancellationToken = default)
+        {
+            var whereClause = GetListFilterWhere(filter);
+
+            var sql = $@"
+                SELECT COUNT(*)
+                FROM Users
+                WHERE {BuildSoftDeleteFilter()}
+                  AND ({whereClause})";
+
+            var parameters = BuildFilterParameters(filter);
+            parameters.Add("TenantId", GetCurrentTenantId());
+
+            return await ExecuteScalarAsync<int>(sql, parameters, cancellationToken);
+        }
+
+        public async Task SetActiveAsync(int id, bool isActive, CancellationToken cancellationToken = default)
+        {
+            var sql = $@"
+                UPDATE Users
+                SET IsActive = @IsActive,
+                    UpdatedAt = @UpdatedAt
+                WHERE Id = @Id AND {BuildSoftDeleteFilter()}";
+
+            await ExecuteAsync(sql, new
+            {
+                Id = id,
+                IsActive = isActive,
+                UpdatedAt = DateTimeOffset.UtcNow,
+                TenantId = GetCurrentTenantId()
+            }, cancellationToken);
+        }
+
+        public async Task ChangePasswordAsync(int id, string passwordHash, CancellationToken cancellationToken = default)
+        {
+            var sql = $@"
+                UPDATE Users
+                SET PasswordHash = @PasswordHash,
+                    UpdatedAt = @UpdatedAt
+                WHERE Id = @Id AND {BuildSoftDeleteFilter()}";
+
+            await ExecuteAsync(sql, new
+            {
+                Id = id,
+                PasswordHash = passwordHash,
+                UpdatedAt = DateTimeOffset.UtcNow,
+                TenantId = GetCurrentTenantId()
+            }, cancellationToken);
+        }
+
+        private string GetListFilterWhere(UserListFilter? filter)
+        {
+            var conditions = new List<string>();
+
+            if (filter != null)
+            {
+                if (!string.IsNullOrWhiteSpace(filter.Name))
+                    conditions.Add("Name LIKE CONCAT('%', @Name, '%')");
+
+                if (!string.IsNullOrWhiteSpace(filter.Email))
+                    conditions.Add("Email LIKE CONCAT('%', @Email, '%')");
+
+                if (filter.IsActive.HasValue)
+                    conditions.Add("IsActive = @IsActive");
+            }
+
+            return conditions.Count > 0 ? string.Join(" AND ", conditions) : "1=1";
+        }
+
+        private Dictionary<string, object> BuildFilterParameters(UserListFilter? filter)
+        {
+            var parameters = new Dictionary<string, object>();
+
+            if (filter != null)
+            {
+                if (!string.IsNullOrWhiteSpace(filter.Name))
+                    parameters.Add("Name", filter.Name);
+
+                if (!string.IsNullOrWhiteSpace(filter.Email))
+                    parameters.Add("Email", filter.Email);
+
+                if (filter.IsActive.HasValue)
+                    parameters.Add("IsActive", filter.IsActive.Value);
+            }
+
+            return parameters;
         }
     }
 }

@@ -1,9 +1,10 @@
-﻿using PlotCAD.Application.Repositories;
+using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Impl;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.Infrastructure.Database;
 using PlotCAD.Infrastructure.Repositories;
 using PlotCAD.Infrastructure.Service.Identity;
+using PlotCAD.Infrastructure.Service;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,20 +14,25 @@ namespace PlotCAD.Infrastructure
     {
         public static IServiceCollection AddInfrastructureServices(this IServiceCollection container, IConfiguration configuration)
         {
-            container.AddSingleton<IDbConnectionFactory>(sp => 
+            container.AddSingleton<IDbConnectionFactory>(sp =>
                 DbConnectionFactoryProvider.CreateFactory(configuration));
 
             #region Repository
             container.AddScoped<IUserRepository, UserRepository>();
             container.AddScoped<ILandRepository, LandRepository>();
+            container.AddScoped<ITenantRepository, TenantRepository>();
+            container.AddScoped<IEmployeeRepository, EmployeeRepository>();
             #endregion
 
             #region Services
+            container.AddSingleton<IFieldEncryptionService, FieldEncryptionService>();
             container.AddScoped<IUserService, UserService>();
             container.AddScoped<ICurrentUserService, CurrentUserService>();
             container.AddScoped<ITokenService, TokenService>();
             container.AddScoped<IAuthService, AuthService>();
             container.AddScoped<ILandService, LandService>();
+            container.AddScoped<ITenantService, TenantService>();
+            container.AddScoped<IEmployeeService, EmployeeService>();
             #endregion
 
             return container;

@@ -1,17 +1,10 @@
-﻿using PlotCAD.Application.Services.Interfaces;
+using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.Domain.Enums;
-using Microsoft.Extensions.Configuration;
 
 namespace PlotCAD.Infrastructure.Service.Identity
 {
     public class CurrentUserService : ICurrentUserService
     {
-        private readonly IConfiguration _configuration;
-        public CurrentUserService(IConfiguration configuration)
-        {
-            _configuration = configuration;
-        }
-
         public int? UserId { get; private set; }
         public Role? Role { get; private set; }
         public Guid? TenantId { get; private set; }
@@ -34,14 +27,9 @@ namespace PlotCAD.Infrastructure.Service.Identity
         public Guid GetTenantId()
         {
             if (!TenantId.HasValue)
-            {
-                if (Guid.TryParse(_configuration["DefaultTenantKey"], out var defaultTenantId))
-                {
-                    TenantId = defaultTenantId;
-                }
-            }
+                throw new InvalidOperationException("TenantId has not been set. Ensure AuthMiddleware ran before accessing tenant context.");
 
-            return TenantId!.Value;
+            return TenantId.Value;
         }
     }
 }

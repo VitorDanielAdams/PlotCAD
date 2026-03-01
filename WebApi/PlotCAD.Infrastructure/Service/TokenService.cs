@@ -17,10 +17,13 @@ namespace PlotCAD.Application.Services.Interfaces
         }
         public string? GenerateToken(User player)
         {
+            var updatedAtUnix = ((DateTimeOffset)(player.UpdatedAt ?? player.CreatedAt)).ToUnixTimeSeconds();
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, player.Id.ToString()),
-                new Claim(ClaimTypes.Role, player.Role.ToString())
+                new Claim(ClaimTypes.Role, player.Role.ToString()),
+                new Claim("tenant_id", player.TenantId.ToString()),
+                new Claim("user_updated_at", updatedAtUnix.ToString())
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));

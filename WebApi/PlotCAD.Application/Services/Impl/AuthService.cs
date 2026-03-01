@@ -22,7 +22,7 @@ namespace PlotCAD.Application.Services.Impl
         }
         public async Task<LoginResponse> AuthenticateAsync(LoginRequest request, CancellationToken cancellationToken = default)
         {
-            var user = await _userRepository.GetByEmailAsync(request.Login, cancellationToken);
+            var user = await _userRepository.GetByEmailForLoginAsync(request.Login, cancellationToken);
             if (user == null)
                 throw new UnauthorizedAccessException("Invalid credentials");
 

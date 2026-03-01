@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import AuthApi from "../../api/Auth";
@@ -10,6 +11,7 @@ import logo from "/logo.png";
 
 const Login = () => {
 	const navigate = useNavigate();
+	const [error, setError] = useState<string | null>(null);
 
 	const { setCurrentUser } = useAuth();
 	const { login } = AuthApi();
@@ -23,14 +25,22 @@ const Login = () => {
 	});
 
 	const onSubmit = async (data: LoginFormData) => {
-		const response = await login(data);
-		if (response.success) {
-			const userResponse = await getCurrentUser();
-			if (userResponse.success && userResponse.data !== null) {
-				setCurrentUser(userResponse.data as IUserResponse);
-				navigate("/v1/home");
-			}
+		setError(null);
+
+		const loginResponse = await login(data);
+		if (!loginResponse.success) {
+			setError(loginResponse.message);
+			return;
 		}
+
+		const userResponse = await getCurrentUser();
+		if (!userResponse.success) {
+			setError(userResponse.message);
+			return;
+		}
+
+		setCurrentUser(userResponse.data as IUserResponse);
+		navigate("/v1/home");
 	};
 
 	return (
@@ -67,6 +77,8 @@ const Login = () => {
 						)}
 					</div>
 
+					{error && <span className="text-center text-sm text-red-500">{error}</span>}
+
 					<button
 						type="submit"
 						disabled={isSubmitting}
@@ -74,7 +86,6 @@ const Login = () => {
 					>
 						Login
 					</button>
-					{/* {error && <span className="text-center text-sm text-red-500">{error}</span>} */}
 				</form>
 			</div>
 		</div>

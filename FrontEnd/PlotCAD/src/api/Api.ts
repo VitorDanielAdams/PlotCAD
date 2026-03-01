@@ -1,10 +1,12 @@
-import axios, {
-	AxiosError,
-	AxiosInstance,
-	AxiosResponse,
-	InternalAxiosRequestConfig,
-} from "axios";
+import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
 import Cookies from "js-cookie";
+
+export class ApiError extends Error {
+	constructor(public readonly status: number, message: string) {
+		super(message);
+		this.name = "ApiError";
+	}
+}
 
 const api: AxiosInstance = axios.create({
 	baseURL: `${import.meta.env.VITE_API_URL}/api`,
@@ -14,26 +16,19 @@ const api: AxiosInstance = axios.create({
 	},
 });
 
-api.interceptors.request.use(
-	(config: InternalAxiosRequestConfig) => {
-		const tenantId: string | undefined = import.meta.env.VITE_TENANT_ID;
-
-		if (tenantId) {
-			config.headers["X-Tenant-Key"] = tenantId;
-		}
-
-		return config;
-	},
-	(error: AxiosError) => Promise.reject(error),
-);
-
 api.interceptors.response.use(
 	(response: AxiosResponse) => response,
 	(error: AxiosError) => {
-		if (error.response?.status === 401) {
+		const status = error.response?.status;
+		const data = error.response?.data as Record<string, unknown> | undefined;
+		const message = (data?.message as string) ?? error.message;
+
+		if (status === 401) {
 			Cookies.remove("token");
+			window.dispatchEvent(new Event("auth:unauthorized"));
 		}
-		return Promise.reject(error);
+
+		return Promise.reject(new ApiError(status ?? 0, message));
 	},
 );
 

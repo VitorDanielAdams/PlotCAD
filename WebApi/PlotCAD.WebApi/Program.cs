@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using PlotCAD.Infrastructure;
 using PlotCAD.WebApi.Middleware;
 using PlotCAD.WebApi.Reponses;
+using System.Text.Json.Serialization;
 using Serilog;
 using System.Text;
 
@@ -132,6 +133,10 @@ builder.Services.AddCors(options =>
 #endregion
 
 builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    })
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
@@ -144,7 +149,7 @@ builder.Services.AddControllers()
             return new BadRequestObjectResult(new ApiResponse<object>
             {
                 Success = false,
-                Message = "Invalid input data",
+                Message = "Dados inválidos",
                 Errors = errors
             });
         };

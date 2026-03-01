@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { FaVectorSquare } from "react-icons/fa";
-import { FiLogOut } from "react-icons/fi";
+import { FaUserFriends, FaVectorSquare } from "react-icons/fa";
+import { FiLogOut, FiUsers } from "react-icons/fi";
 import { HiHome } from "react-icons/hi";
 import { TbRulerMeasure } from "react-icons/tb";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -10,13 +10,16 @@ import SideBar from "../SideBar";
 import { ISideBarItem } from "../SideBar/SideBar.types";
 
 const Layout: React.FC = () => {
-	const { handleLogout } = useAuth();
+	const { handleLogout, user } = useAuth();
 	const navigate = useNavigate();
 	const location = useLocation();
 	const prefix = "/v1";
 
 	const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 	const toggleSidebar = () => setIsSidebarOpen((prev: boolean) => !prev);
+
+	const isAdmin = user?.role === "Admin";
+	const isAdminOrManager = user?.role === "Admin" || user?.role === "Manager";
 
 	const sideBarItems: ISideBarItem[] = [
 		{
@@ -46,18 +49,32 @@ const Layout: React.FC = () => {
 				navigate(`${prefix}/nova-matricula`);
 			},
 		},
-		// {
-		// 	text: "Dashboards",
-		// 	icon: <VscGraph size={22} />,
-		// 	selected: location.pathname === `${prefix}/dashboards`,
-		// 	onClick: () => navigate(`${prefix}/dashboards`),
-		// },
-		// {
-		// 	text: "Perfil",
-		// 	icon: <FaUserCircle size={22} />,
-		// 	selected: location.pathname === `${prefix}/dashboards`,
-		// 	onClick: () => navigate(`${prefix}/dashboards`),
-		// },
+		...(isAdmin
+			? [
+					{
+						text: "Usuários",
+						icon: <FiUsers size={22} />,
+						selected: location.pathname === `${prefix}/usuarios`,
+						onClick: () => {
+							toggleSidebar();
+							navigate(`${prefix}/usuarios`);
+						},
+					},
+				]
+			: []),
+		...(isAdminOrManager
+			? [
+					{
+						text: "Funcionários",
+						icon: <FaUserFriends size={22} />,
+						selected: location.pathname === `${prefix}/funcionarios`,
+						onClick: () => {
+							toggleSidebar();
+							navigate(`${prefix}/funcionarios`);
+						},
+					},
+				]
+			: []),
 		{
 			text: "Logout",
 			icon: <FiLogOut size={22} />,

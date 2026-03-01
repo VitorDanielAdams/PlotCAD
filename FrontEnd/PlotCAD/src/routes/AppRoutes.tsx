@@ -3,10 +3,12 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Layout from "../components/Layout";
 import Loading from "../components/Loading/Loading";
 import { AuthProvider } from "../contexts/AuthContext/AuthContext";
+import EmployeesPage from "../pages/EmployeesPage";
 import HomePage from "../pages/HomePage";
 import LandDraw from "../pages/LandDraw";
 import LandRegistration from "../pages/LandRegistration";
 import Login from "../pages/Login";
+import UsersPage from "../pages/UsersPage";
 import ProtectedRoute from "./ProtectedRoute";
 
 export function AppRoutes() {
@@ -21,6 +23,8 @@ export function AppRoutes() {
 								<Route path="home" index element={<HomePage />} />
 								<Route path="matriculas" element={<LandRegistration />} />
 								<Route path="nova-matricula" element={<LandDraw />} />
+								<Route path="usuarios" element={<UsersPage />} />
+								<Route path="funcionarios" element={<EmployeesPage />} />
 								{/* <Route path="relatorios" element={<HomePage />} /> */}
 							</Route>
 						</Route>

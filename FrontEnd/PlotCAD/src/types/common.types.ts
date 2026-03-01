@@ -1,6 +1,7 @@
 export interface IResponse<T> {
-	success: string;
+	success: boolean;
 	message: string;
-	data: T | unknown;
-	errors: [string];
+	data: T | null;
+	errors: string[];
+	httpStatus?: number;
 }

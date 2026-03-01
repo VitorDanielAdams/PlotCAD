@@ -9,6 +9,7 @@ export interface IUser {
 export interface AuthContextType {
 	user: IUser | null;
 	isAuthenticated: boolean;
+	subscriptionError: string | null;
 	setCurrentUser: (user: IUserResponse) => void;
 	handleLogout: () => void;
 	refreshUser: () => Promise<void>;

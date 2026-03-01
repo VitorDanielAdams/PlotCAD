@@ -1,7 +1,9 @@
-﻿using PlotCAD.Application.Repositories;
+using Microsoft.Extensions.Caching.Memory;
+using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.Domain.Enums;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace PlotCAD.WebApi.Middleware
 {
@@ -9,66 +11,117 @@ namespace PlotCAD.WebApi.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<AuthMiddleware> _logger;
+        private readonly IMemoryCache _cache;
 
-        public AuthMiddleware(RequestDelegate next, ILogger<AuthMiddleware> logger)
+        public AuthMiddleware(RequestDelegate next, ILogger<AuthMiddleware> logger, IMemoryCache cache)
         {
             _next = next;
             _logger = logger;
+            _cache = cache;
         }
 
-        public async Task InvokeAsync(HttpContext context, ICurrentUserService currentUserService, IUserRepository userRepository)
+        public async Task InvokeAsync(HttpContext context, ICurrentUserService currentUserService, ITenantService tenantService, IUserRepository userRepository)
         {
-            if (context.Request.Headers.TryGetValue("X-Tenant-Key", out var tenantKey) &&
-                Guid.TryParse(tenantKey, out var tenantId))
+            if (context.Request.Path.StartsWithSegments("/api/internal") ||
+                context.Request.Path.StartsWithSegments("/api/auth"))
             {
-                if (context.User?.Identity?.IsAuthenticated == true)
-                {
-                    var validationResult = await InitializeCurrentUser(context, currentUserService, userRepository, tenantId);
-                    
-                    if (!validationResult)
-                    {
-                        context.Response.StatusCode = 403;
-                        await context.Response.WriteAsync("Forbidden: Invalid tenant access");
-                        return;
-                    }
-                }
+                await _next(context);
+                return;
             }
 
-            await _next(context);
-        }
-
-        private async Task<bool> InitializeCurrentUser(
-            HttpContext context, 
-            ICurrentUserService currentUserService, 
-            IUserRepository userRepository, 
-            Guid tenantId)
-        {
-            var user = context.User;
-            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            if (context.User?.Identity?.IsAuthenticated != true)
             {
-                return false;
+                await _next(context);
+                return;
             }
 
-            var userEntity = await userRepository.GetByIdAsync(userId);
-            if (userEntity == null || userEntity.TenantId != tenantId)
+            var tenantClaim = context.User.FindFirst("tenant_id")?.Value;
+            if (!Guid.TryParse(tenantClaim, out var tenantId))
             {
-                _logger.LogWarning(
-                    "Tenant spoofing attempt detected. User {UserId} tried to access tenant {TenantId}. User's actual tenant: {ActualTenantId}",
-                    userId, tenantId, userEntity?.TenantId);
-                return false;
+                context.Response.StatusCode = 401;
+                await context.Response.WriteAsync("Unauthorized: missing tenant context");
+                return;
             }
 
-            var roleClaim = user.FindFirst(ClaimTypes.Role)?.Value ??
-                user.FindFirst("role")?.Value;
+            var tenant = await tenantService.GetCachedAsync(tenantId);
+            if (tenant == null)
+            {
+                context.Response.StatusCode = 401;
+                await context.Response.WriteAsync("Unauthorized: tenant not found");
+                return;
+            }
+
+            var status = tenant.SubscriptionStatus;
+
+            if (tenant.SubscriptionExpiresAt.HasValue &&
+                tenant.SubscriptionExpiresAt.Value < DateTimeOffset.UtcNow &&
+                status == SubscriptionStatus.Active)
+            {
+                _ = tenantService.UpdateSubscriptionAsync(tenantId, SubscriptionStatus.Expired, tenant.SubscriptionExpiresAt);
+                status = SubscriptionStatus.Expired;
+            }
+
+            if (status == SubscriptionStatus.Expired || status == SubscriptionStatus.Suspended)
+            {
+                context.Response.StatusCode = 402;
+                context.Response.ContentType = "application/json";
+                var message = status == SubscriptionStatus.Expired
+                    ? "Subscription expired. Please renew your plan."
+                    : "Account suspended. Please contact support.";
+                await context.Response.WriteAsync(JsonSerializer.Serialize(new { message }));
+                return;
+            }
+
+            var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                context.Response.StatusCode = 401;
+                await context.Response.WriteAsync("Unauthorized: invalid user claim");
+                return;
+            }
+
+            var roleClaim = context.User.FindFirst(ClaimTypes.Role)?.Value
+                         ?? context.User.FindFirst("role")?.Value;
 
             var role = roleClaim != null && Enum.TryParse<Role>(roleClaim, true, out var parsedRole)
                 ? parsedRole
                 : Role.Employee;
 
             currentUserService.SetUser(userId, role, tenantId);
-            return true;
+
+            var cacheKey = $"user_check_{userId}";
+            if (!_cache.TryGetValue(cacheKey, out (bool IsActive, long UpdatedAtUnix) cached))
+            {
+                var dbUser = await userRepository.GetByIdAsync(userId, context.RequestAborted);
+                if (dbUser == null)
+                {
+                    context.Response.StatusCode = 401;
+                    await context.Response.WriteAsync("Unauthorized: user not found");
+                    return;
+                }
+
+                cached = (dbUser.IsActive, ((DateTimeOffset)(dbUser.UpdatedAt ?? dbUser.CreatedAt)).ToUnixTimeSeconds());
+                _cache.Set(cacheKey, cached, TimeSpan.FromSeconds(30));
+            }
+
+            if (!cached.IsActive)
+            {
+                context.Response.StatusCode = 401;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync(JsonSerializer.Serialize(new { message = "Account has been disabled." }));
+                return;
+            }
+
+            if (long.TryParse(context.User.FindFirst("user_updated_at")?.Value, out var tokenUpdatedAt)
+                && tokenUpdatedAt < cached.UpdatedAtUnix)
+            {
+                context.Response.StatusCode = 401;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync(JsonSerializer.Serialize(new { message = "Session expired. Please log in again." }));
+                return;
+            }
+
+            await _next(context);
         }
     }
 }
