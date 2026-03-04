@@ -30,3 +30,6 @@ nul
 docs/
 *.pem
 WebApi/PlotCAD.WebApi/appsettings.Development.json
+*.pmtiles
+scripts/
+FrontEnd/PlotCAD/public/tiles/README.md

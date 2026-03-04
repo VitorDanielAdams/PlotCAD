@@ -39,6 +39,18 @@ export const update = async <T, U>(route: string, body: T, id: string): Promise<
 	}
 };
 
+export const getByQuery = async <U>(
+	route: string,
+	params: Record<string, string>,
+): Promise<U> => {
+	try {
+		const query = new URLSearchParams(params).toString();
+		return (await api.get(`${route}?${query}`)).data;
+	} catch (e: any) {
+		return handleErrors(e);
+	}
+};
+
 export const remove = async (route: string, id: string) => {
 	try {
 		return (await api.delete(`${route}/${id}`)).data;

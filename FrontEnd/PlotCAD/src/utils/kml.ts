@@ -93,6 +93,97 @@ export function buildKml(
 </kml>`;
 }
 
+export function buildPointKml(
+	name: string,
+	lat: number,
+	lng: number,
+	description?: string,
+): string {
+	return `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>${escapeXml(name)}</name>
+    <Placemark>
+      <name>${escapeXml(name)}</name>
+      ${description ? `<description>${escapeXml(description)}</description>` : ""}
+      <Point>
+        <coordinates>${lng.toFixed(8)},${lat.toFixed(8)},0</coordinates>
+      </Point>
+    </Placemark>
+  </Document>
+</kml>`;
+}
+
+export function buildGeoJsonPolygonKml(
+	name: string,
+	geoJson: string,
+	description?: string,
+): string | null {
+	try {
+		const geom = JSON.parse(geoJson);
+		const rings: number[][][] = [];
+
+		if (geom.type === "Polygon") {
+			rings.push(...geom.coordinates);
+		} else if (geom.type === "MultiPolygon") {
+			for (const polygon of geom.coordinates) {
+				rings.push(...polygon);
+			}
+		} else {
+			return null;
+		}
+
+		if (rings.length === 0) return null;
+
+		const placemarks = rings
+			.map((ring, i) => {
+				const coords = ring
+					.map(
+						(c: number[]) =>
+							`              ${c[0].toFixed(8)},${c[1].toFixed(8)},0`,
+					)
+					.join("\n");
+
+				return `    <Placemark>
+      <name>${escapeXml(name)}${rings.length > 1 ? ` (${i + 1})` : ""}</name>
+      ${description ? `<description>${escapeXml(description)}</description>` : ""}
+      <styleUrl>#carStyle</styleUrl>
+      <Polygon>
+        <extrude>0</extrude>
+        <altitudeMode>clampToGround</altitudeMode>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+${coords}
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>`;
+			})
+			.join("\n");
+
+		return `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>${escapeXml(name)}</name>
+    <Style id="carStyle">
+      <LineStyle>
+        <color>ff0c73e8</color>
+        <width>2</width>
+      </LineStyle>
+      <PolyStyle>
+        <color>260c73e8</color>
+      </PolyStyle>
+    </Style>
+${placemarks}
+  </Document>
+</kml>`;
+	} catch {
+		return null;
+	}
+}
+
 export function downloadKml(filename: string, content: string): void {
 	const blob = new Blob([content], { type: "application/vnd.google-earth.kml+xml" });
 	const url = URL.createObjectURL(blob);

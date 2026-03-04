@@ -153,7 +153,7 @@ function List(props: IListProps) {
 			</div>
 
 			{pagination && pagination.totalCount > 0 && !loading && (
-				<div className="border-t border-gray-200 bg-gray-50 px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
+				<div className="border-t border-gray-200 bg-gray-50 px-6 py-3 flex items-center justify-between gap-4 flex-wrap rounded-b-lg relative z-10">
 					<div className="flex items-center gap-3 text-sm text-gray-600">
 						<span>
 							{firstItem}–{lastItem} de {pagination.totalCount}
@@ -163,7 +163,7 @@ function List(props: IListProps) {
 							<select
 								value={pagination.pageSize}
 								onChange={(e) => pagination.onPageSizeChange(Number(e.target.value))}
-								className="border border-gray-300 rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-700 focus:border-transparent"
+								className="border border-gray-300 rounded pl-2 pr-8 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-700 focus:border-transparent"
 							>
 								{pageSizeOptions.map((opt) => (
 									<option key={opt} value={opt}>
