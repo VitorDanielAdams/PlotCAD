@@ -20,18 +20,11 @@ namespace PlotCAD.Infrastructure.Repositories
             _encryption = encryption;
         }
 
-        private void EncryptFields(Employee entity)
-        {
-            entity.Phone = _encryption.Encrypt(entity.Phone);
-            entity.Email = _encryption.Encrypt(entity.Email);
-            entity.Position = _encryption.Encrypt(entity.Position);
-        }
-
         private void DecryptFields(Employee entity)
         {
-            entity.Phone = _encryption.Decrypt(entity.Phone);
-            entity.Email = _encryption.Decrypt(entity.Email);
-            entity.Position = _encryption.Decrypt(entity.Position);
+            entity.Name = _encryption.Decrypt(entity.Name)!;
+            entity.Phone = _encryption.Decrypt(entity.Phone)!;
+            entity.Email = _encryption.Decrypt(entity.Email)!;
         }
 
         public override async Task<Employee> AddAsync(Employee entity, CancellationToken cancellationToken = default)
@@ -44,10 +37,10 @@ namespace PlotCAD.Infrastructure.Repositories
             var id = await ExecuteScalarAsync<int>(sql, new
             {
                 TenantId = GetCurrentTenantId(),
-                entity.Name,
+                Name = _encryption.Encrypt(entity.Name),
                 Phone = _encryption.Encrypt(entity.Phone),
                 Email = _encryption.Encrypt(entity.Email),
-                Position = _encryption.Encrypt(entity.Position),
+                entity.Position,
                 entity.IsActive,
                 entity.UserId,
                 CreatedAt = DateTimeOffset.UtcNow,
@@ -72,10 +65,10 @@ namespace PlotCAD.Infrastructure.Repositories
             await ExecuteAsync(sql, new
             {
                 entity.Id,
-                entity.Name,
+                Name = _encryption.Encrypt(entity.Name),
                 Phone = _encryption.Encrypt(entity.Phone),
                 Email = _encryption.Encrypt(entity.Email),
-                Position = _encryption.Encrypt(entity.Position),
+                entity.Position,
                 UpdatedAt = DateTimeOffset.UtcNow,
                 TenantId = GetCurrentTenantId()
             }, cancellationToken);

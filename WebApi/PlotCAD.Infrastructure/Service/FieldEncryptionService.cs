@@ -6,32 +6,6 @@ using PlotCAD.Application.Services.Interfaces;
 
 namespace PlotCAD.Infrastructure.Service
 {
-    /// <summary>
-    /// Hybrid (RSA-OAEP + AES-256-GCM) field-level encryption service.
-    ///
-    /// KEY SETUP (run once, outside the application):
-    ///
-    ///   # 1. Generate RSA-2048 key pair (Linux/macOS/WSL/Git Bash)
-    ///   openssl genrsa -out private.pem 2048
-    ///   openssl rsa -in private.pem -pubout -out public.pem
-    ///
-    ///   # 2. Generate a random 32-byte AES data key (DEK) and encrypt it with the RSA public key
-    ///   openssl rand -out dek.bin 32
-    ///   openssl pkeyutl -encrypt -inkey public.pem -pubin \
-    ///     -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 -pkeyopt rsa_mgf1_md:sha256 \
-    ///     -in dek.bin | base64 -w0
-    ///   rm dek.bin
-    ///   # Copy the base64 output → appsettings.json → FieldEncryption:EncryptedDataKey
-    ///
-    ///   # 3. Store secrets
-    ///   - FieldEncryption:EncryptedDataKey   → appsettings.json  (safe to commit; it's RSA-encrypted)
-    ///   - FieldEncryption:RsaPrivateKeyPem   → user-secrets  OR  env var FIELDENCRYPTION__RSAPRIVATEKEYPEM
-    ///                                          (full PEM content of private.pem — NEVER commit)
-    ///
-    /// Encrypted format stored in DB: "base64(nonce).base64(tag).base64(ciphertext)"
-    /// Values that don't match this format are returned as-is (backward-compatible with plain text).
-    /// When keys are not configured the service runs in passthrough mode (no-op) and logs a warning.
-    /// </summary>
     public sealed class FieldEncryptionService : IFieldEncryptionService, IDisposable
     {
         private readonly AesGcm? _aesGcm;
@@ -87,7 +61,6 @@ namespace PlotCAD.Infrastructure.Service
             if (!_isEnabled || string.IsNullOrEmpty(ciphertext))
                 return ciphertext;
 
-            // Values that don't match the "nonce.tag.ciphertext" format are returned as-is (plain text legacy data)
             var parts = ciphertext.Split('.');
             if (parts.Length != 3)
                 return ciphertext;
@@ -104,7 +77,6 @@ namespace PlotCAD.Infrastructure.Service
             }
             catch (CryptographicException)
             {
-                // Tampered or unencrypted value that happened to match the format — return as-is
                 return ciphertext;
             }
         }

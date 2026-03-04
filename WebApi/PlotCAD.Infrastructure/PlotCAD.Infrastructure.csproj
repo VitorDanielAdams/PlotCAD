@@ -23,7 +23,6 @@
   <ItemGroup>
     <Folder Include="Logging\Attributes\" />
     <Folder Include="Logging\Extensions\" />
-    <Folder Include="Migrations\" />
     <Folder Include="Repositories\Common\" />
   </ItemGroup>
 

@@ -28,3 +28,5 @@ WebApi/PlotCAD.WebApi/logs/
 tmpclaude*
 nul
 docs/
+*.pem
+WebApi/PlotCAD.WebApi/appsettings.Development.json
