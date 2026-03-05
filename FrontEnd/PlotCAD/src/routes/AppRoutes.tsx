@@ -22,7 +22,9 @@ export function AppRoutes() {
 							<Route path="/v1" element={<Layout />}>
 								<Route path="home" index element={<HomePage />} />
 								<Route path="matriculas" element={<LandRegistration />} />
-								<Route path="nova-matricula" element={<LandDraw />} />
+								<Route path="nova-matricula" element={<LandDraw mode="new" />} />
+								<Route path="matricula/:id" element={<LandDraw mode="view" />} />
+								<Route path="matricula/:id/editar" element={<LandDraw mode="edit" />} />
 								<Route path="usuarios" element={<UsersPage />} />
 								<Route path="funcionarios" element={<EmployeesPage />} />
 								{/* <Route path="relatorios" element={<HomePage />} /> */}

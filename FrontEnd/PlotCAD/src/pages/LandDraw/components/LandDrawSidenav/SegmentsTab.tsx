@@ -9,6 +9,7 @@ interface Props {
 	updateSegment: (id: string, field: keyof ISegment, value: string | number) => void;
 	updateBearingRaw: (id: string, raw: string) => void;
 	formatBearing: (seg: ISegment) => string;
+	readOnly?: boolean;
 }
 
 const SegmentsTab = ({
@@ -19,6 +20,7 @@ const SegmentsTab = ({
 	updateSegment,
 	updateBearingRaw,
 	formatBearing,
+	readOnly,
 }: Props) => (
 	<div className="flex-1 overflow-y-auto divide-y divide-gray-100">
 		{segments.map((seg, index) => (
@@ -27,12 +29,13 @@ const SegmentsTab = ({
 				seg={seg}
 				index={index}
 				isOpen={openSegmentId === seg.id}
-				showDelete={segments.length > 1}
+				showDelete={!readOnly && segments.length > 1}
 				onToggle={() => toggleSegment(seg.id)}
 				onRemove={() => removeSegment(seg.id)}
 				onUpdateField={(field, value) => updateSegment(seg.id, field, value)}
 				onUpdateBearingRaw={(raw) => updateBearingRaw(seg.id, raw)}
 				formatBearing={formatBearing}
+				readOnly={readOnly}
 			/>
 		))}
 	</div>

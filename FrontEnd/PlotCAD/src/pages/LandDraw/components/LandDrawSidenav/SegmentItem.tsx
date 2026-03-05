@@ -12,10 +12,11 @@ interface Props {
 	onUpdateField: (field: keyof ISegment, value: string | number) => void;
 	onUpdateBearingRaw: (raw: string) => void;
 	formatBearing: (seg: ISegment) => string;
+	readOnly?: boolean;
 }
 
 const inputClass =
-	"w-full px-3 py-1.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent";
+	"w-full px-3 py-1.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-default";
 
 const SegmentItem = ({
 	seg,
@@ -27,6 +28,7 @@ const SegmentItem = ({
 	onUpdateField,
 	onUpdateBearingRaw,
 	formatBearing,
+	readOnly,
 }: Props) => (
 	<div className="bg-white">
 		<button
@@ -82,6 +84,7 @@ const SegmentItem = ({
 						placeholder="ex: Frente, Fundos, Lateral..."
 						className={`${inputClass} placeholder:text-gray-300`}
 						maxLength={40}
+						disabled={readOnly}
 					/>
 				</div>
 
@@ -96,10 +99,13 @@ const SegmentItem = ({
 						placeholder="ex: SO1235NE ou SO123545NE"
 						className={`${inputClass} font-mono placeholder:text-gray-300`}
 						maxLength={12}
+						disabled={readOnly}
 					/>
-					<p className="text-[10px] text-gray-400 mt-0.5">
-						Digite o rumo completo — os campos abaixo são preenchidos automaticamente
-					</p>
+					{!readOnly && (
+						<p className="text-[10px] text-gray-400 mt-0.5">
+							Digite o rumo completo — os campos abaixo são preenchidos automaticamente
+						</p>
+					)}
 				</div>
 
 				<div>
@@ -110,7 +116,8 @@ const SegmentItem = ({
 						<select
 							value={seg.from}
 							onChange={(e) => onUpdateField("from", e.target.value as CardinalDirection)}
-							className="w-16 px-2 py-1.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent font-mono"
+							className="w-16 px-2 py-1.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent font-mono disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-default"
+							disabled={readOnly}
 						>
 							{CARDINAL_OPTIONS.map((d) => (
 								<option key={d} value={d}>
@@ -127,7 +134,8 @@ const SegmentItem = ({
 									max={89}
 									value={seg.degrees}
 									onChange={(e) => onUpdateField("degrees", Number(e.target.value))}
-									className="w-12 px-1.5 py-1.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-center font-mono"
+									className="w-12 px-1.5 py-1.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-center font-mono disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-default"
+									disabled={readOnly}
 								/>
 								<span className="text-[10px] text-gray-400">°</span>
 							</div>
@@ -138,7 +146,8 @@ const SegmentItem = ({
 									max={59}
 									value={seg.minutes}
 									onChange={(e) => onUpdateField("minutes", Number(e.target.value))}
-									className="w-12 px-1.5 py-1.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-center font-mono"
+									className="w-12 px-1.5 py-1.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-center font-mono disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-default"
+									disabled={readOnly}
 								/>
 								<span className="text-[10px] text-gray-400">'</span>
 							</div>
@@ -149,7 +158,8 @@ const SegmentItem = ({
 									max={59}
 									value={seg.seconds}
 									onChange={(e) => onUpdateField("seconds", Number(e.target.value))}
-									className="w-12 px-1.5 py-1.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-center font-mono"
+									className="w-12 px-1.5 py-1.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-center font-mono disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-default"
+									disabled={readOnly}
 								/>
 								<span className="text-[10px] text-gray-400">"</span>
 							</div>
@@ -158,7 +168,8 @@ const SegmentItem = ({
 						<select
 							value={seg.to}
 							onChange={(e) => onUpdateField("to", e.target.value as CardinalDirection)}
-							className="w-16 px-2 py-1.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent font-mono"
+							className="w-16 px-2 py-1.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent font-mono disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-default"
+							disabled={readOnly}
 						>
 							{CARDINAL_OPTIONS.map((d) => (
 								<option key={d} value={d}>
@@ -181,6 +192,7 @@ const SegmentItem = ({
 						onChange={(e) => onUpdateField("distance", Number(e.target.value))}
 						className={`${inputClass} font-mono`}
 						placeholder="0.00"
+						disabled={readOnly}
 					/>
 				</div>
 			</div>

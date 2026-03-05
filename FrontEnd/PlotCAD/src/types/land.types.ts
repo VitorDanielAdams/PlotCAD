@@ -30,11 +30,35 @@ export interface ILandListResponse {
 
 // ── API: detail ───────────────────────────────────────────────────────────────
 
+export interface ICreateLandRequest {
+	name: string;
+	registrationNumber: string;
+	location: string;
+	client?: string;
+	notes?: string;
+	totalArea: number;
+	perimeter: number;
+	isClosed: boolean;
+	isActive: boolean;
+	segments: ICreateLandSegmentRequest[];
+}
+
+export interface ICreateLandSegmentRequest {
+	sortOrder: number;
+	fromDirection: CardinalDirection;
+	toDirection: CardinalDirection;
+	degrees: number;
+	minutes: number;
+	seconds: number;
+	distance: number;
+	label: string;
+	bearingRaw: string;
+}
 export interface ILandSegmentDetail {
 	id: number;
 	sortOrder: number;
-	fromDirection: string;
-	toDirection: string;
+	fromDirection: CardinalDirection;
+	toDirection: CardinalDirection;
 	degrees: number;
 	minutes: number;
 	seconds: number;
@@ -55,6 +79,10 @@ export interface ILandDetail {
 	isClosed: boolean;
 	isActive: boolean;
 	segments: ILandSegmentDetail[];
+}
+
+export interface IUpdateLandRequest extends ICreateLandRequest {
+	id: number;
 }
 
 export interface IKmlSegment {

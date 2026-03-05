@@ -1,6 +1,8 @@
 export type { CardinalDirection } from "../../types/land.types";
 import type { CardinalDirection } from "../../types/land.types";
 
+export type LandDrawMode = "new" | "edit" | "view";
+
 export interface ISegment {
 	id: string;
 	from: CardinalDirection;

@@ -8,9 +8,7 @@ export function useMapLayerControl() {
 	const map = useMap();
 	const zoomRef = useRef(map.getZoom());
 	const [meetsMinZoom, setMeetsMinZoom] = useState(map.getZoom() >= CAR_MIN_ZOOM);
-	const [activeLayers, setActiveLayers] = useState<Set<string>>(
-		new Set(["car_area_imovel"]),
-	);
+	const [activeLayers, setActiveLayers] = useState<Set<string>>(new Set());
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	// Only trigger re-render when crossing the zoom threshold

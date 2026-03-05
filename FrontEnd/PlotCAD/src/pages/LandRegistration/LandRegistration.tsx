@@ -1,7 +1,7 @@
 import { Filter, Loader2, MoreVertical, Search } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getLandById, listLands } from "../../api/Land";
+import { disableLand, getLandById, listLands } from "../../api/Land";
 import KmlExportModal from "../../components/KmlExportModal";
 import List from "../../components/List";
 import { IColumn } from "../../components/List/List.types";
@@ -28,6 +28,7 @@ const LandRegistration = () => {
 		isClosed: boolean;
 	} | null>(null);
 	const [kmlLoadingId, setKmlLoadingId] = useState<number | null>(null);
+	const [disableLoadingId, setDisableLoadingId] = useState<number | null>(null);
 
 	const navigate = useNavigate();
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -91,6 +92,18 @@ const LandRegistration = () => {
 			setKmlModal({ segments, name: land.name, isClosed: land.isClosed });
 		} finally {
 			setKmlLoadingId(null);
+		}
+	};
+
+	const handleDisable = async (item: ILandListItem) => {
+		setOpenMenuId(null);
+		if (!window.confirm(`Desabilitar a matrícula "${item.name}"?`)) return;
+		setDisableLoadingId(item.id);
+		try {
+			await disableLand(item.id);
+			fetchLands(page, pageSize, debouncedSearch);
+		} finally {
+			setDisableLoadingId(null);
 		}
 	};
 
@@ -161,7 +174,7 @@ const LandRegistration = () => {
 						}}
 						className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
 					>
-						{kmlLoadingId === item.id ? (
+						{kmlLoadingId === item.id || disableLoadingId === item.id ? (
 							<Loader2 className="h-4 w-4 animate-spin" />
 						) : (
 							<MoreVertical className="h-4 w-4" />
@@ -173,7 +186,7 @@ const LandRegistration = () => {
 							<div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-20">
 								<button
 									onClick={() => {
-										console.log("Visualizar", item.id);
+										navigate(`/v1/matricula/${item.id}`);
 										setOpenMenuId(null);
 									}}
 									className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors"
@@ -182,7 +195,7 @@ const LandRegistration = () => {
 								</button>
 								<button
 									onClick={() => {
-										console.log("Editar", item.id);
+										navigate(`/v1/matricula/${item.id}/editar`);
 										setOpenMenuId(null);
 									}}
 									className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors"
@@ -196,13 +209,10 @@ const LandRegistration = () => {
 									Exportar KML
 								</button>
 								<button
-									onClick={() => {
-										console.log("Excluir", item.id);
-										setOpenMenuId(null);
-									}}
+									onClick={() => handleDisable(item)}
 									className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 transition-colors"
 								>
-									Excluir
+									Desabilitar
 								</button>
 							</div>
 						</>

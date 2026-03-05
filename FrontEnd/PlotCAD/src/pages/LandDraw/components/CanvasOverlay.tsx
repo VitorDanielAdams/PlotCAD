@@ -1,9 +1,9 @@
 import { Eye, EyeOff, Maximize2, Scan } from "lucide-react";
-import type { Dispatch, MouseEvent, RefObject, SetStateAction } from "react";
+import type { Dispatch, MouseEvent, Ref, SetStateAction } from "react";
 import type { ISegment } from "../LandDraw.types";
 
 interface Props {
-	canvasRef: RefObject<HTMLCanvasElement | null>;
+	canvasRef: Ref<HTMLCanvasElement>;
 	canvasHandlers: {
 		onMouseDown: (e: MouseEvent<HTMLCanvasElement>) => void;
 		onMouseMove: (e: MouseEvent<HTMLCanvasElement>) => void;

@@ -108,5 +108,53 @@ namespace PlotCAD.Application.Services.Impl
 
             return response;
         }
+
+        public async Task UpdateAsync(int id, LandSaveRequest request, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("{MethodName} - Id: {Id}", nameof(UpdateAsync), id);
+
+            var land = await _landRepository.GetByIdAsync(id, cancellationToken)
+                ?? throw new KeyNotFoundException($"Land {id} not found.");
+
+            land.Name = request.Name;
+            land.RegistrationNumber = request.RegistrationNumber;
+            land.Location = request.Location;
+            land.Client = request.Client;
+            land.Notes = request.Notes;
+            land.TotalArea = request.TotalArea;
+            land.Perimeter = request.Perimeter;
+            land.IsClosed = request.IsClosed;
+
+            await _landRepository.UpdateAsync(land, cancellationToken);
+            await _landRepository.DeleteSegmentsByLandIdAsync(id, cancellationToken);
+
+            if (request.Segments.Any())
+            {
+                var segments = request.Segments.Select(s => new LandSegment
+                {
+                    LandId = id,
+                    SortOrder = s.SortOrder,
+                    FromDirection = s.FromDirection,
+                    ToDirection = s.ToDirection,
+                    Degrees = s.Degrees,
+                    Minutes = s.Minutes,
+                    Seconds = s.Seconds,
+                    Distance = s.Distance,
+                    Label = s.Label,
+                    BearingRaw = s.BearingRaw,
+                });
+
+                await _landRepository.AddSegmentsAsync(id, segments, cancellationToken);
+            }
+
+            _logger.LogInformation("{MethodName} - Land updated: {Id}", nameof(UpdateAsync), id);
+        }
+
+        public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("{MethodName} - Id: {Id}", nameof(DeleteAsync), id);
+            await _landRepository.DeleteAsync(id, cancellationToken);
+            _logger.LogInformation("{MethodName} - Land disabled: {Id}", nameof(DeleteAsync), id);
+        }
     }
 }

@@ -8,7 +8,7 @@ export interface MapLayerStyle {
 export interface MapLayerField {
 	key: string;
 	label: string;
-	format?: "text" | "number" | "date" | "area" | "propertyType";
+	format?: "text" | "number" | "date" | "area" | "propertyType" | "condition";
 }
 
 export interface MapLayerConfig {

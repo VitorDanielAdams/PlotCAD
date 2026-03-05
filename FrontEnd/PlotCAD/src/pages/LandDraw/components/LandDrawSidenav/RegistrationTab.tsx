@@ -3,12 +3,13 @@ import type { IRegistration } from "../../LandDraw.types";
 interface Props {
 	registration: IRegistration;
 	updateRegistration: (field: keyof IRegistration, value: string) => void;
+	readOnly?: boolean;
 }
 
 const inputClass =
-	"w-full px-3 py-1.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent placeholder:text-gray-300";
+	"w-full px-3 py-1.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent placeholder:text-gray-300 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-default";
 
-const RegistrationTab = ({ registration, updateRegistration }: Props) => (
+const RegistrationTab = ({ registration, updateRegistration, readOnly }: Props) => (
 	<div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
 		<div>
 			<label className="block text-xs font-medium text-gray-500 mb-1">
@@ -20,6 +21,7 @@ const RegistrationTab = ({ registration, updateRegistration }: Props) => (
 				onChange={(e) => updateRegistration("name", e.target.value)}
 				placeholder="ex: Fazenda São João"
 				className={inputClass}
+				disabled={readOnly}
 			/>
 		</div>
 		<div>
@@ -32,6 +34,7 @@ const RegistrationTab = ({ registration, updateRegistration }: Props) => (
 				onChange={(e) => updateRegistration("registrationNumber", e.target.value)}
 				placeholder="ex: 00.000.000-0"
 				className={`${inputClass} font-mono`}
+				disabled={readOnly}
 			/>
 		</div>
 		<div>
@@ -42,6 +45,7 @@ const RegistrationTab = ({ registration, updateRegistration }: Props) => (
 				onChange={(e) => updateRegistration("location", e.target.value)}
 				placeholder="ex: Município, Estado"
 				className={inputClass}
+				disabled={readOnly}
 			/>
 		</div>
 		<div>
@@ -54,6 +58,7 @@ const RegistrationTab = ({ registration, updateRegistration }: Props) => (
 				onChange={(e) => updateRegistration("client", e.target.value)}
 				placeholder="ex: João da Silva"
 				className={inputClass}
+				disabled={readOnly}
 			/>
 		</div>
 		<div>
@@ -64,6 +69,7 @@ const RegistrationTab = ({ registration, updateRegistration }: Props) => (
 				placeholder="Informações adicionais..."
 				rows={4}
 				className={`${inputClass} resize-none`}
+				disabled={readOnly}
 			/>
 		</div>
 	</div>

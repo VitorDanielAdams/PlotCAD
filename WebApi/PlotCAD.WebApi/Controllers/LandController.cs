@@ -76,5 +76,44 @@ namespace PlotCAD.WebApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail("An error occurred while processing your request."));
             }
         }
+
+        [HttpPut("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult> Update(int id, [FromBody] LandSaveRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _landService.UpdateAsync(id, request, cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(ApiResponse<object>.Fail("Land not found."));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while updating land {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
+        }
+
+        [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult> Delete(int id, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _landService.DeleteAsync(id, cancellationToken);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting land {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
+        }
     }
 }

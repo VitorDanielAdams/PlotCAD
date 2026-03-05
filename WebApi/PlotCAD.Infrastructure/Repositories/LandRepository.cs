@@ -9,9 +9,25 @@ namespace PlotCAD.Infrastructure.Repositories
 {
     public class LandRepository : BaseRepository<Land>, ILandRepository
     {
+        private const string LandColumns = @"
+            Id, TenantId, CreatedAt, UpdatedAt, DeletedAt,
+            CreatedBy, UpdatedBy, DeletedBy,
+            Name, RegistrationNumber, Location, Client, Notes,
+            TotalArea, Perimeter, IsClosed, IsActive, UserId";
+
         public LandRepository(IDbConnectionFactory connectionFactory, ICurrentUserService currentUserService)
             : base(connectionFactory, currentUserService)
         {
+        }
+
+        public override async Task<Land?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var sql = $@"
+                SELECT {LandColumns}
+                FROM Lands
+                WHERE Id = @Id AND {BuildSoftDeleteFilter()}";
+
+            return await QueryFirstOrDefaultAsync<Land>(sql, new { Id = id, TenantId = GetCurrentTenantId() }, cancellationToken);
         }
 
         public override async Task<Land> AddAsync(Land entity, CancellationToken cancellationToken = default)
@@ -84,13 +100,19 @@ namespace PlotCAD.Infrastructure.Repositories
             return await QueryAsync<LandSegment>(sql, new { LandId = landId }, cancellationToken);
         }
 
+        public async Task DeleteSegmentsByLandIdAsync(int landId, CancellationToken cancellationToken = default)
+        {
+            var sql = @"DELETE FROM LandSegments WHERE LandId = @LandId";
+            await ExecuteAsync(sql, new { LandId = landId }, cancellationToken);
+        }
+
         public async Task<IEnumerable<Land>> GetPagedAsync(int page, int pageSize, LandListFilter? filter, CancellationToken cancellationToken = default)
         {
             var offset = (page - 1) * pageSize;
             var whereClause = GetListFilterWhere(filter);
 
             var sql = $@"
-                SELECT *
+                SELECT {LandColumns}
                 FROM Lands
                 WHERE {BuildSoftDeleteFilter()}
                   AND ({whereClause})

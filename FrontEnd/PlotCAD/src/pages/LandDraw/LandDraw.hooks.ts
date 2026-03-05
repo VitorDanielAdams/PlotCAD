@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { ILandDetail } from "../../types/land.types";
 import type {
 	CardinalDirection,
 	IDrawPoint,
@@ -169,6 +170,12 @@ export function useLandDraw() {
 	const perimeter = segments.reduce((acc, s) => acc + s.distance, 0);
 
 	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const [canvasReady, setCanvasReady] = useState(false);
+	const setCanvasRef = useCallback((el: HTMLCanvasElement | null) => {
+		canvasRef.current = el;
+		setCanvasReady(el !== null);
+	}, []);
+
 	const zoomRef = useRef(1);
 	const panRef = useRef({ x: 0, y: 0 });
 	const isDraggingRef = useRef(false);
@@ -436,9 +443,10 @@ export function useLandDraw() {
 	}, [scheduleRedraw]);
 
 	useLayoutEffect(() => {
+		if (!canvasReady) return;
 		const id = requestAnimationFrame(() => fitToView());
 		return () => cancelAnimationFrame(id);
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [canvasReady, fitToView]);
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -446,7 +454,7 @@ export function useLandDraw() {
 		const ro = new ResizeObserver(() => fitToView());
 		ro.observe(canvas);
 		return () => ro.disconnect();
-	}, [fitToView]);
+	}, [fitToView, canvasReady]);
 
 	const prevSegCountRef = useRef(segments.length);
 	useEffect(() => {
@@ -521,7 +529,7 @@ export function useLandDraw() {
 
 		canvas.addEventListener("wheel", handleWheel, { passive: false });
 		return () => canvas.removeEventListener("wheel", handleWheel);
-	}, [scheduleRedraw]);
+	}, [scheduleRedraw, canvasReady]);
 
 	const addSegment = useCallback(() => {
 		if (segments.length >= MAX_SEGMENTS) return;
@@ -582,6 +590,33 @@ export function useLandDraw() {
 		setRegistration((prev) => ({ ...prev, [field]: value }));
 	}, []);
 
+	const loadLand = useCallback((detail: ILandDetail) => {
+		const segs = [...detail.segments]
+			.sort((a, b) => a.sortOrder - b.sortOrder)
+			.map(
+				(s): ISegment => ({
+					id: createId(),
+					from: s.fromDirection as CardinalDirection,
+					to: s.toDirection as CardinalDirection,
+					degrees: s.degrees,
+					minutes: s.minutes,
+					seconds: s.seconds,
+					distance: s.distance,
+					bearingRaw: s.bearingRaw,
+					label: s.label,
+				}),
+			);
+		setSegments(segs);
+		setOpenSegmentId(segs[0]?.id ?? null);
+		setRegistration({
+			name: detail.name,
+			registrationNumber: detail.registrationNumber,
+			location: detail.location,
+			client: detail.client ?? "",
+			notes: detail.notes ?? "",
+		});
+	}, []);
+
 	const toggleShowLabels = useCallback(() => setShowLabels((v) => !v), []);
 
 	const formatBearing = useCallback(
@@ -601,11 +636,12 @@ export function useLandDraw() {
 		toggleSegment,
 		registration,
 		updateRegistration,
+		loadLand,
 		fullscreen,
 		setFullscreen,
 		showLabels,
 		toggleShowLabels,
-		canvasRef,
+		canvasRef: setCanvasRef,
 		isClosed,
 		areaM2,
 		perimeter,

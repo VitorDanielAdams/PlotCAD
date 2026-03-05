@@ -136,6 +136,9 @@ async function fetchCarGeometry(codImovel: string, uf: string): Promise<string |
 	});
 }
 
+// Keys used in header or special ID section — excluded from data fields loop
+const HEADER_KEYS = new Set(["cod_imovel", "municipio", "cod_estado", "ind_tipo"]);
+
 export default function PropertyInfoPanel({
 	feature,
 	layerConfig,
@@ -177,17 +180,27 @@ export default function PropertyInfoPanel({
 		};
 	}, [map, feature.latlng]);
 
+	const props = feature.properties;
+	const fields = layerConfig?.fields ?? [];
+
+	const codImovel = props.cod_imovel ? String(props.cod_imovel) : null;
+	const uf = props.cod_estado ? String(props.cod_estado) : null;
+	const municipality = props.municipio ? String(props.municipio) : null;
+	const locationText = [municipality, uf].filter(Boolean).join("/");
+
+	const tipoCode = props.ind_tipo ? String(props.ind_tipo) : null;
+	const propertyType = tipoCode ? PROPERTY_TYPE_MAP[tipoCode] ?? tipoCode : null;
+	const panelTitle = propertyType || layerConfig?.label || "Informações";
+
+	const hasKmlSupport = fields.some((f) => f.key === "cod_imovel") && Boolean(codImovel);
+
 	const handleDownloadKml = useCallback(async () => {
-		const code = String(feature.properties.cod_imovel ?? "");
-		const uf = feature.properties.cod_estado
-			? String(feature.properties.cod_estado)
-			: null;
-		const name = code || "Imóvel Rural";
+		const code = codImovel ?? "";
+		const name = code || panelTitle;
 
 		const descParts: string[] = [];
 		if (code) descParts.push(`Código CAR: ${code}`);
-		const mun = feature.properties.municipio;
-		if (mun) descParts.push(`Município: ${mun}`);
+		if (municipality) descParts.push(`Município: ${municipality}`);
 		if (uf) descParts.push(`UF: ${uf}`);
 		const desc = descParts.join("\n");
 
@@ -208,20 +221,9 @@ export default function PropertyInfoPanel({
 
 		const filename = code ? code.replace(/[^a-z0-9_\-]/gi, "_") : "imovel_rural";
 		downloadKml(filename, kml);
-	}, [feature]);
+	}, [feature, codImovel, municipality, uf, panelTitle]);
 
-	const props = feature.properties;
-	const codImovel = props.cod_imovel ? String(props.cod_imovel) : null;
-
-	const municipality = props.municipio ? String(props.municipio) : null;
-	const state = props.cod_estado ? String(props.cod_estado) : null;
-	const locationText = [municipality, state].filter(Boolean).join("/");
-	const tipoCode = props.ind_tipo ? String(props.ind_tipo) : null;
-	const propertyType = tipoCode ? PROPERTY_TYPE_MAP[tipoCode] ?? tipoCode : null;
-
-	const area = props.num_area != null ? Number(props.num_area) : null;
-	const condicao = props.des_condic ? String(props.des_condic) : null;
-	const dataCriacao = props.dat_criaca ? String(props.dat_criaca) : null;
+	const dataFields = fields.filter((f) => !HEADER_KEYS.has(f.key));
 
 	return (
 		<div
@@ -235,7 +237,7 @@ export default function PropertyInfoPanel({
 					<MapPin className="w-4 h-4 text-[#15803d] shrink-0 mt-0.5" />
 					<div className="min-w-0">
 						<h3 className="text-sm font-semibold text-gray-900 leading-tight">
-							{propertyType || "Imóvel Rural"}
+							{panelTitle}
 						</h3>
 						{locationText && (
 							<p className="text-xs text-gray-500 mt-0.5">{locationText}</p>
@@ -250,7 +252,7 @@ export default function PropertyInfoPanel({
 				</button>
 			</div>
 
-			{/* CAR Code */}
+			{/* ID section */}
 			{codImovel && (
 				<div className="px-3 py-2 border-b border-gray-100 bg-gray-50/50">
 					<div className="flex items-center justify-between mb-0.5">
@@ -266,18 +268,61 @@ export default function PropertyInfoPanel({
 			)}
 
 			{/* Data fields */}
-			<div className="px-3 py-2.5">
-				<div className="space-y-1.5">
-					<FieldRow label="Área Total" value={formatArea(area)} />
-					{condicao && (
-						<div className="flex items-center justify-between gap-3">
-							<span className="text-xs text-gray-500 shrink-0">Condição</span>
-							<ConditionBadge value={condicao} />
-						</div>
-					)}
-					<FieldRow label="Data de Cadastro" value={formatDate(dataCriacao)} />
+			{dataFields.length > 0 && (
+				<div className="px-3 py-2.5">
+					<div className="space-y-1.5">
+						{dataFields.map((field) => {
+							const raw = props[field.key];
+							if (raw === null || raw === undefined) return null;
+							const value = String(raw);
+
+							if (field.format === "condition") {
+								return (
+									<div
+										key={field.key}
+										className="flex items-center justify-between gap-3"
+									>
+										<span className="text-xs text-gray-500 shrink-0">{field.label}</span>
+										<ConditionBadge value={value} />
+									</div>
+								);
+							}
+
+							if (field.format === "area") {
+								return (
+									<FieldRow
+										key={field.key}
+										label={field.label}
+										value={formatArea(Number(raw))}
+									/>
+								);
+							}
+
+							if (field.format === "date") {
+								return (
+									<FieldRow
+										key={field.key}
+										label={field.label}
+										value={formatDate(value)}
+									/>
+								);
+							}
+
+							if (field.format === "propertyType") {
+								return (
+									<FieldRow
+										key={field.key}
+										label={field.label}
+										value={PROPERTY_TYPE_MAP[value] ?? value}
+									/>
+								);
+							}
+
+							return <FieldRow key={field.key} label={field.label} value={value} />;
+						})}
+					</div>
 				</div>
-			</div>
+			)}
 
 			{/* Coordinates */}
 			<div className="px-3 py-2 border-t border-gray-100 flex items-center gap-4">
@@ -295,21 +340,23 @@ export default function PropertyInfoPanel({
 				</div>
 			</div>
 
-			{/* KML Download */}
-			<div className="px-3 py-2 border-t border-gray-200 bg-gray-50">
-				<button
-					onClick={handleDownloadKml}
-					disabled={downloading}
-					className="flex items-center justify-center gap-2 w-full px-3 py-1.5 text-xs font-medium text-[#15803d] bg-white border border-gray-200 rounded-md hover:bg-green-50 hover:border-green-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-				>
-					{downloading ? (
-						<Loader2 className="w-3.5 h-3.5 animate-spin" />
-					) : (
-						<Download className="w-3.5 h-3.5" />
-					)}
-					{downloading ? "Baixando..." : "Baixar KML"}
-				</button>
-			</div>
+			{/* KML Download — only for layers with CAR geometry support */}
+			{hasKmlSupport && (
+				<div className="px-3 py-2 border-t border-gray-200 bg-gray-50">
+					<button
+						onClick={handleDownloadKml}
+						disabled={downloading}
+						className="flex items-center justify-center gap-2 w-full px-3 py-1.5 text-xs font-medium text-[#15803d] bg-white border border-gray-200 rounded-md hover:bg-green-50 hover:border-green-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						{downloading ? (
+							<Loader2 className="w-3.5 h-3.5 animate-spin" />
+						) : (
+							<Download className="w-3.5 h-3.5" />
+						)}
+						{downloading ? "Baixando..." : "Baixar KML"}
+					</button>
+				</div>
+			)}
 		</div>
 	);
 }
