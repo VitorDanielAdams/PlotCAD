@@ -86,8 +86,8 @@ namespace PlotCAD.Infrastructure.Repositories.Common
 
             var sql = $@"
                 INSERT INTO {_tableName} ({columns})
-                VALUES ({values});
-                SELECT LAST_INSERT_ID();";
+                VALUES ({values})
+                RETURNING Id";
 
             var id = await ExecuteScalarAsync<int>(sql, entity, cancellationToken);
             entity.Id = id;

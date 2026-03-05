@@ -7,14 +7,14 @@ namespace PlotCAD.Infrastructure.Database
     {
         public static IDbConnectionFactory CreateFactory(IConfiguration configuration)
         {
-            var provider = configuration["Database:Provider"]?.ToLower() ?? "mysql";
-            var connectionString = configuration.GetConnectionString("DefaultConnection") 
+            var provider = configuration["Database:Provider"]?.ToLower() ?? "postgresql";
+            var connectionString = configuration.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found");
 
             return provider switch
             {
-                "mysql" => new MySqlConnectionFactory(connectionString),
-                _ => throw new NotSupportedException($"Database provider '{provider}' is not supported. Supported providers: mysql, postgresql, sqlserver")
+                "postgresql" => new PostgreSqlConnectionFactory(connectionString),
+                _ => throw new NotSupportedException($"Database provider '{provider}' is not supported. Supported providers: postgresql")
             };
         }
     }

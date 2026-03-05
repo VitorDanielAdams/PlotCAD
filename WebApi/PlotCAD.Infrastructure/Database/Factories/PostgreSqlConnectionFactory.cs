@@ -1,27 +1,27 @@
-using MySqlConnector;
+using Npgsql;
 using System.Data;
 
 namespace PlotCAD.Infrastructure.Database.Factories
 {
-    public class MySqlConnectionFactory : IDbConnectionFactory
+    public class PostgreSqlConnectionFactory : IDbConnectionFactory
     {
         private readonly string _connectionString;
 
-        public MySqlConnectionFactory(string connectionString)
+        public PostgreSqlConnectionFactory(string connectionString)
         {
             _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
         }
 
         public async Task<IDbConnection> CreateConnectionAsync(CancellationToken cancellationToken = default)
         {
-            var connection = new MySqlConnection(_connectionString);
+            var connection = new NpgsqlConnection(_connectionString);
             await connection.OpenAsync(cancellationToken);
             return connection;
         }
 
         public IDbConnection CreateConnection()
         {
-            var connection = new MySqlConnection(_connectionString);
+            var connection = new NpgsqlConnection(_connectionString);
             connection.Open();
             return connection;
         }

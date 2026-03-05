@@ -22,7 +22,7 @@ namespace PlotCAD.Infrastructure.Repositories
                 SELECT Id, TenantId, Name, Email, PasswordHash, Role, IsActive,
                     CreatedAt, UpdatedAt, DeletedAt
                 FROM Users
-                WHERE Email = @Email AND DeletedAt IS NULL AND IsActive = 1";
+                WHERE Email = @Email AND DeletedAt IS NULL AND IsActive = true";
 
             using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
             return await connection.QueryFirstOrDefaultAsync<User>(sql, new { Email = email });
@@ -84,8 +84,8 @@ namespace PlotCAD.Infrastructure.Repositories
         {
             var sql = @"
                 INSERT INTO Users (TenantId, Name, Email, PasswordHash, Role, IsActive, CreatedAt, UpdatedAt)
-                VALUES (@TenantId, @Name, @Email, @PasswordHash, @Role, @IsActive, @CreatedAt, @UpdatedAt);
-                SELECT LAST_INSERT_ID();";
+                VALUES (@TenantId, @Name, @Email, @PasswordHash, @Role, @IsActive, @CreatedAt, @UpdatedAt)
+                RETURNING Id";
 
             var id = await ExecuteScalarAsync<int>(sql, new
             {
@@ -207,10 +207,10 @@ namespace PlotCAD.Infrastructure.Repositories
             if (filter != null)
             {
                 if (!string.IsNullOrWhiteSpace(filter.Name))
-                    conditions.Add("Name LIKE CONCAT('%', @Name, '%')");
+                    conditions.Add("Name ILIKE '%' || @Name || '%'");
 
                 if (!string.IsNullOrWhiteSpace(filter.Email))
-                    conditions.Add("Email LIKE CONCAT('%', @Email, '%')");
+                    conditions.Add("Email ILIKE '%' || @Email || '%'");
 
                 if (filter.IsActive.HasValue)
                     conditions.Add("IsActive = @IsActive");

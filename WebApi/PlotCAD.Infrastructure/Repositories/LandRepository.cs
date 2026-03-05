@@ -20,8 +20,8 @@ namespace PlotCAD.Infrastructure.Repositories
                 INSERT INTO Lands (TenantId, UserId, Name, RegistrationNumber, Location, Client,
                     Notes, TotalArea, Perimeter, IsClosed, IsActive, CreatedAt, UpdatedAt)
                 VALUES (@TenantId, @UserId, @Name, @RegistrationNumber, @Location, @Client,
-                    @Notes, @TotalArea, @Perimeter, @IsClosed, @IsActive, @CreatedAt, @UpdatedAt);
-                SELECT LAST_INSERT_ID();";
+                    @Notes, @TotalArea, @Perimeter, @IsClosed, @IsActive, @CreatedAt, @UpdatedAt)
+                RETURNING Id";
 
             var id = await ExecuteScalarAsync<int>(sql, new
             {
@@ -160,7 +160,7 @@ namespace PlotCAD.Infrastructure.Repositories
                 UPDATE Lands
                 SET DeletedAt = @DeletedAt,
                     UpdatedAt = @UpdatedAt,
-                    IsActive = 0
+                    IsActive = false
                 WHERE Id = @Id AND {BuildSoftDeleteFilter()}";
 
             await ExecuteAsync(sql, new
@@ -179,10 +179,10 @@ namespace PlotCAD.Infrastructure.Repositories
             if (filter != null)
             {
                 if (!string.IsNullOrWhiteSpace(filter.Name))
-                    conditions.Add("Name LIKE CONCAT('%', @Name, '%')");
+                    conditions.Add("Name ILIKE '%' || @Name || '%'");
 
                 if (!string.IsNullOrWhiteSpace(filter.RegistrationNumber))
-                    conditions.Add("RegistrationNumber LIKE CONCAT('%', @RegistrationNumber, '%')");
+                    conditions.Add("RegistrationNumber ILIKE '%' || @RegistrationNumber || '%'");
 
                 if (filter.IsActive.HasValue)
                     conditions.Add("IsActive = @IsActive");

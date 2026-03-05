@@ -24,6 +24,14 @@ builder.Host.UseSerilog();
 
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
+#region Redis
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
+    options.InstanceName = "PlotCAD:";
+});
+#endregion
+
 #region Rate Limiting
 builder.Services.AddMemoryCache();
 builder.Services.Configure<IpRateLimitOptions>(options =>

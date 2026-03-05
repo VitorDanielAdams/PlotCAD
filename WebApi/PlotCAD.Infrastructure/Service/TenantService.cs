@@ -1,18 +1,24 @@
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 using PlotCAD.Application.DTOs.Tenant;
 using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.Domain.Entities;
 using PlotCAD.Domain.Enums;
+using System.Text.Json;
 
 namespace PlotCAD.Infrastructure.Service
 {
     public class TenantService : ITenantService
     {
         private readonly ITenantRepository _tenantRepository;
-        private readonly IMemoryCache _cache;
+        private readonly IDistributedCache _cache;
 
-        public TenantService(ITenantRepository tenantRepository, IMemoryCache cache)
+        private static readonly DistributedCacheEntryOptions CacheOptions = new()
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+        };
+
+        public TenantService(ITenantRepository tenantRepository, IDistributedCache cache)
         {
             _tenantRepository = tenantRepository;
             _cache = cache;
@@ -34,7 +40,7 @@ namespace PlotCAD.Infrastructure.Service
 
             await _tenantRepository.CreateAsync(tenant, ct);
 
-            _cache.Remove(CacheKey(tenant.Id));
+            await _cache.RemoveAsync(CacheKey(tenant.Id), ct);
 
             return MapToResponse(tenant);
         }
@@ -42,18 +48,19 @@ namespace PlotCAD.Infrastructure.Service
         public async Task UpdateSubscriptionAsync(Guid tenantId, SubscriptionStatus status, DateTimeOffset? expiresAt, CancellationToken ct = default)
         {
             await _tenantRepository.UpdateSubscriptionAsync(tenantId, status, expiresAt, ct);
-            _cache.Remove(CacheKey(tenantId));
+            await _cache.RemoveAsync(CacheKey(tenantId), ct);
         }
 
         public async Task<Tenant?> GetCachedAsync(Guid tenantId, CancellationToken ct = default)
         {
             var key = CacheKey(tenantId);
-            if (_cache.TryGetValue(key, out Tenant? cached))
-                return cached;
+            var cached = await _cache.GetStringAsync(key, ct);
+            if (cached != null)
+                return JsonSerializer.Deserialize<Tenant>(cached);
 
             var tenant = await _tenantRepository.GetByIdAsync(tenantId, ct);
             if (tenant != null)
-                _cache.Set(key, tenant, TimeSpan.FromMinutes(5));
+                await _cache.SetStringAsync(key, JsonSerializer.Serialize(tenant), CacheOptions, ct);
 
             return tenant;
         }

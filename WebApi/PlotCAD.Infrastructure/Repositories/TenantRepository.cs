@@ -24,7 +24,7 @@ namespace PlotCAD.Infrastructure.Repositories
                 WHERE Id = @Id";
 
             using var connection = await _connectionFactory.CreateConnectionAsync(ct);
-            return await connection.QueryFirstOrDefaultAsync<Tenant>(sql, new { Id = id.ToString() });
+            return await connection.QueryFirstOrDefaultAsync<Tenant>(sql, new { Id = id });
         }
 
         public async Task<Tenant> CreateAsync(Tenant tenant, CancellationToken ct = default)
@@ -38,7 +38,7 @@ namespace PlotCAD.Infrastructure.Repositories
             using var connection = await _connectionFactory.CreateConnectionAsync(ct);
             await connection.ExecuteAsync(sql, new
             {
-                Id = tenant.Id.ToString(),
+                Id = tenant.Id,
                 tenant.Name,
                 PlanType = (int)tenant.PlanType,
                 tenant.MaxUsers,
@@ -64,7 +64,7 @@ namespace PlotCAD.Infrastructure.Repositories
             using var connection = await _connectionFactory.CreateConnectionAsync(ct);
             await connection.ExecuteAsync(sql, new
             {
-                Id = id.ToString(),
+                Id = id,
                 Status = (int)status,
                 ExpiresAt = expiresAt,
                 UpdatedAt = DateTimeOffset.UtcNow
@@ -79,7 +79,7 @@ namespace PlotCAD.Infrastructure.Repositories
                 WHERE TenantId = @TenantId AND DeletedAt IS NULL";
 
             using var connection = await _connectionFactory.CreateConnectionAsync(ct);
-            return await connection.ExecuteScalarAsync<int>(sql, new { TenantId = tenantId.ToString() });
+            return await connection.ExecuteScalarAsync<int>(sql, new { TenantId = tenantId });
         }
     }
 }

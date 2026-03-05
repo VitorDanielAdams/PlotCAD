@@ -31,8 +31,8 @@ namespace PlotCAD.Infrastructure.Repositories
         {
             var sql = @"
                 INSERT INTO Employees (TenantId, Name, Phone, Email, Position, IsActive, UserId, CreatedAt, UpdatedAt)
-                VALUES (@TenantId, @Name, @Phone, @Email, @Position, @IsActive, @UserId, @CreatedAt, @UpdatedAt);
-                SELECT LAST_INSERT_ID();";
+                VALUES (@TenantId, @Name, @Phone, @Email, @Position, @IsActive, @UserId, @CreatedAt, @UpdatedAt)
+                RETURNING Id";
 
             var id = await ExecuteScalarAsync<int>(sql, new
             {
@@ -90,7 +90,7 @@ namespace PlotCAD.Infrastructure.Repositories
                 UPDATE Employees
                 SET DeletedAt = @DeletedAt,
                     UpdatedAt = @UpdatedAt,
-                    IsActive = 0
+                    IsActive = false
                 WHERE Id = @Id AND {BuildSoftDeleteFilter()}";
 
             await ExecuteAsync(sql, new
@@ -184,7 +184,7 @@ namespace PlotCAD.Infrastructure.Repositories
             if (filter != null)
             {
                 if (!string.IsNullOrWhiteSpace(filter.Name))
-                    conditions.Add("Name LIKE CONCAT('%', @Name, '%')");
+                    conditions.Add("Name ILIKE '%' || @Name || '%'");
 
                 if (filter.IsActive.HasValue)
                     conditions.Add("IsActive = @IsActive");
