@@ -6,6 +6,7 @@ import type {
 	ILandListResponse,
 	IUpdateLandRequest,
 } from "../types/land.types";
+import api from "./Api";
 import { getById, post, remove, update } from "./Common";
 
 const path = "lands";
@@ -40,6 +41,28 @@ export const updateLand = async (
 export const disableLand = async (id: number): Promise<IResponse<unknown>> => {
 	try {
 		return await remove(path, String(id));
+	} catch (e: any) {
+		if (e?.response?.data?.message) {
+			return Promise.reject(e.response.data.error);
+		}
+		return Promise.reject(e.message);
+	}
+};
+
+export const toggleLand = async (id: number): Promise<IResponse<unknown>> => {
+	try {
+		return (await api.patch(`${path}/${id}/toggle-active`)).data;
+	} catch (e: any) {
+		if (e?.response?.data?.message) {
+			return Promise.reject(e.response.data.error);
+		}
+		return Promise.reject(e.message);
+	}
+};
+
+export const duplicateLand = async (id: number): Promise<IResponse<unknown>> => {
+	try {
+		return (await api.post(`${path}/${id}/duplicate`)).data;
 	} catch (e: any) {
 		if (e?.response?.data?.message) {
 			return Promise.reject(e.response.data.error);

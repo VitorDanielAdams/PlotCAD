@@ -115,5 +115,49 @@ namespace PlotCAD.WebApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail("An error occurred while processing your request."));
             }
         }
+
+        [HttpPatch("{id}/toggle-active")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<ApiResponse<object>>> ToggleActive(int id, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _landService.ToggleActiveAsync(id, cancellationToken);
+                return Ok(ApiResponse<object>.Ok());
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while toggling active state for land {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
+        }
+
+        [HttpPost("{id}/duplicate")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<ApiResponse<LandResponse>>> Duplicate(int id, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await _landService.DuplicateAsync(id, cancellationToken);
+                return Ok(ApiResponse<LandResponse>.Ok(result));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while duplicating land {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
+        }
     }
 }

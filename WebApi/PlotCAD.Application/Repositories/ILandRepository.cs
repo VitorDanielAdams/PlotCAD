@@ -11,5 +11,6 @@ namespace PlotCAD.Application.Repositories
         Task AddSegmentsAsync(int landId, IEnumerable<LandSegment> segments, CancellationToken cancellationToken = default);
         Task<IEnumerable<LandSegment>> GetSegmentsByLandIdAsync(int landId, CancellationToken cancellationToken = default);
         Task DeleteSegmentsByLandIdAsync(int landId, CancellationToken cancellationToken = default);
+        Task SetActiveAsync(int id, bool isActive, CancellationToken cancellationToken = default);
     }
 }

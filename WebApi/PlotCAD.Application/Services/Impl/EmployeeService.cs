@@ -20,10 +20,25 @@ namespace PlotCAD.Application.Services.Impl
 
         public async Task<ListResponse<EmployeeResponse>> ListAsync(ListRequest<EmployeeListFilter> args, CancellationToken cancellationToken = default)
         {
+            // Name filter requires in-memory filtering because the Name field is encrypted
+            if (!string.IsNullOrWhiteSpace(args.Filter?.Name))
+            {
+                var filterWithoutName = args.Filter == null ? null : new EmployeeListFilter { IsActive = args.Filter.IsActive };
+                var allItems = await _employeeRepository.GetAllAsync(filterWithoutName, cancellationToken);
+                var filtered = allItems
+                    .Where(e => e.Name != null && e.Name.Contains(args.Filter!.Name, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                var total = filtered.Count;
+                var paged = filtered.Skip((args.PageNumber - 1) * args.PageSize).Take(args.PageSize);
+                var mapped = _mapper.Map<IEnumerable<EmployeeResponse>>(paged);
+                return new ListResponse<EmployeeResponse>(total, args.PageNumber, args.PageSize, mapped);
+            }
+
             var items = await _employeeRepository.GetPagedAsync(args.PageNumber, args.PageSize, args.Filter, cancellationToken);
-            var total = await _employeeRepository.GetCountAsync(args.Filter, cancellationToken);
-            var mapped = _mapper.Map<IEnumerable<EmployeeResponse>>(items);
-            return new ListResponse<EmployeeResponse>(total, args.PageNumber, args.PageSize, mapped);
+            var count = await _employeeRepository.GetCountAsync(args.Filter, cancellationToken);
+            var mappedAll = _mapper.Map<IEnumerable<EmployeeResponse>>(items);
+            return new ListResponse<EmployeeResponse>(count, args.PageNumber, args.PageSize, mappedAll);
         }
 
         public async Task<EmployeeResponse> GetByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -70,6 +85,32 @@ namespace PlotCAD.Application.Services.Impl
                 throw new KeyNotFoundException($"Employee {id} not found.");
 
             await _employeeRepository.DeleteAsync(id, cancellationToken);
+        }
+
+        public async Task ToggleActiveAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var employee = await _employeeRepository.GetByIdAsync(id, cancellationToken)
+                ?? throw new KeyNotFoundException($"Employee {id} not found.");
+
+            await _employeeRepository.SetActiveAsync(id, !employee.IsActive, cancellationToken);
+        }
+
+        public async Task<EmployeeResponse> DuplicateAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var source = await _employeeRepository.GetByIdAsync(id, cancellationToken)
+                ?? throw new KeyNotFoundException($"Employee {id} not found.");
+
+            var copy = new Employee
+            {
+                Name = $"{source.Name} (Cópia)",
+                Phone = source.Phone,
+                Email = source.Email,
+                Position = source.Position,
+                IsActive = true
+            };
+
+            var created = await _employeeRepository.AddAsync(copy, cancellationToken);
+            return _mapper.Map<EmployeeResponse>(created);
         }
     }
 }

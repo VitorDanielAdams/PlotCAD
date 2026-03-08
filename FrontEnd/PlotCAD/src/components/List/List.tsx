@@ -84,8 +84,8 @@ function List(props: IListProps) {
 		: 0;
 
 	return (
-		<div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-			<div className="border-b border-gray-200 bg-gray-50">
+		<div className="bg-white border border-gray-200 rounded-lg">
+			<div className="border-b border-gray-200 bg-gray-50 rounded-t-lg overflow-hidden">
 				<div className="grid gap-4 px-6 py-3" style={{ gridTemplateColumns: gridCols }}>
 					{columns.map((column, index) => (
 						<div

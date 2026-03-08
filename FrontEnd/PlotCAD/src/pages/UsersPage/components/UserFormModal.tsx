@@ -2,10 +2,15 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import UserManagementApi from "../../../api/UserManagement";
 import Modal from "../../../components/Modal";
+import useAuth from "../../../contexts/hooks/useAuth";
 import type { ICreateUserRequest, IUserResponse } from "../../../types/users.types";
 
 interface IUserFormModalProps {
-	modal: { mode: "create" | "edit"; user?: IUserResponse } | null;
+	modal: {
+		mode: "create" | "edit";
+		user?: IUserResponse;
+		prefill?: { name: string; role: string };
+	} | null;
 	onClose: () => void;
 	onSaved: () => void;
 }
@@ -18,6 +23,7 @@ const inputClass =
 	"w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent";
 
 const UserFormModal = ({ modal, onClose, onSaved }: IUserFormModalProps) => {
+	const { user: currentUser } = useAuth();
 	const [formData, setFormData] = useState<ICreateUserRequest>({
 		name: "",
 		email: "",
@@ -35,6 +41,13 @@ const UserFormModal = ({ modal, onClose, onSaved }: IUserFormModalProps) => {
 				email: modal.user.email,
 				password: "",
 				role: modal.user.role,
+			});
+		} else if (modal.prefill) {
+			setFormData({
+				name: modal.prefill.name,
+				email: "",
+				password: "",
+				role: modal.prefill.role,
 			});
 		} else {
 			setFormData({ name: "", email: "", password: "", role: "Employee" });
@@ -78,6 +91,8 @@ const UserFormModal = ({ modal, onClose, onSaved }: IUserFormModalProps) => {
 			setFormLoading(false);
 		}
 	};
+
+	const isSelf = modal?.mode === "edit" && modal.user?.id === currentUser?.id;
 
 	return (
 		<Modal
@@ -150,7 +165,10 @@ const UserFormModal = ({ modal, onClose, onSaved }: IUserFormModalProps) => {
 					<select
 						value={formData.role}
 						onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-						className={inputClass}
+						disabled={isSelf}
+						className={`${inputClass} ${
+							isSelf ? "bg-gray-100 cursor-not-allowed opacity-60" : ""
+						}`}
 					>
 						{ROLES.map((r) => (
 							<option key={r} value={r}>
@@ -158,6 +176,11 @@ const UserFormModal = ({ modal, onClose, onSaved }: IUserFormModalProps) => {
 							</option>
 						))}
 					</select>
+					{isSelf && (
+						<p className="text-xs text-gray-500 mt-1">
+							Você não pode alterar seu próprio perfil.
+						</p>
+					)}
 				</div>
 			</div>
 		</Modal>

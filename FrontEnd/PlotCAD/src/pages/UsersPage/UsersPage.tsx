@@ -25,9 +25,12 @@ const UsersPage = () => {
 	const [modal, setModal] = useState<{
 		mode: "create" | "edit";
 		user?: IUserResponse;
+		prefill?: { name: string; role: string };
 	} | null>(null);
 
-	const [changePasswordUser, setChangePasswordUser] = useState<IUserResponse | null>(null);
+	const [changePasswordUser, setChangePasswordUser] = useState<IUserResponse | null>(
+		null,
+	);
 
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -93,6 +96,14 @@ const UsersPage = () => {
 		await deleteUser(user.id);
 		fetchUsers(page, pageSize, debouncedSearch);
 		fetchPlanInfo();
+	};
+
+	const handleDuplicate = (user: IUserResponse) => {
+		setOpenMenuId(null);
+		setModal({
+			mode: "create",
+			prefill: { name: `${user.name} (Cópia)`, role: user.role },
+		});
 	};
 
 	const handlePageSizeChange = (newSize: number) => {
@@ -197,6 +208,12 @@ const UsersPage = () => {
 											{item.isActive ? "Desativar" : "Ativar"}
 										</button>
 									)}
+									<button
+										onClick={() => handleDuplicate(item)}
+										className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+									>
+										Duplicar
+									</button>
 									{!isSelf && (
 										<button
 											onClick={() => handleDelete(item)}
@@ -277,11 +294,7 @@ const UsersPage = () => {
 				/>
 			</div>
 
-			<UserFormModal
-				modal={modal}
-				onClose={() => setModal(null)}
-				onSaved={handleSaved}
-			/>
+			<UserFormModal modal={modal} onClose={() => setModal(null)} onSaved={handleSaved} />
 
 			<ChangePasswordModal
 				user={changePasswordUser}

@@ -156,5 +156,65 @@ namespace PlotCAD.Application.Services.Impl
             await _landRepository.DeleteAsync(id, cancellationToken);
             _logger.LogInformation("{MethodName} - Land disabled: {Id}", nameof(DeleteAsync), id);
         }
+
+        public async Task ToggleActiveAsync(int id, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("{MethodName} - Id: {Id}", nameof(ToggleActiveAsync), id);
+
+            var land = await _landRepository.GetByIdAsync(id, cancellationToken)
+                ?? throw new KeyNotFoundException($"Land {id} not found.");
+
+            await _landRepository.SetActiveAsync(id, !land.IsActive, cancellationToken);
+        }
+
+        public async Task<LandResponse> DuplicateAsync(int id, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("{MethodName} - Id: {Id}", nameof(DuplicateAsync), id);
+
+            if (_currentUserService.UserId == null)
+                throw new AuthenticationException("Invalid Token");
+
+            var source = await _landRepository.GetByIdAsync(id, cancellationToken)
+                ?? throw new KeyNotFoundException($"Land {id} not found.");
+
+            var segments = await _landRepository.GetSegmentsByLandIdAsync(id, cancellationToken);
+
+            var copy = new Land
+            {
+                Name = $"{source.Name} (Cópia)",
+                RegistrationNumber = source.RegistrationNumber,
+                Location = source.Location,
+                Client = source.Client,
+                Notes = source.Notes,
+                TotalArea = source.TotalArea,
+                Perimeter = source.Perimeter,
+                IsClosed = source.IsClosed,
+                IsActive = true,
+                UserId = _currentUserService.UserId.Value,
+            };
+
+            var created = await _landRepository.AddAsync(copy, cancellationToken);
+
+            if (segments.Any())
+            {
+                var copiedSegments = segments.Select(s => new LandSegment
+                {
+                    LandId = created.Id,
+                    SortOrder = s.SortOrder,
+                    FromDirection = s.FromDirection,
+                    ToDirection = s.ToDirection,
+                    Degrees = s.Degrees,
+                    Minutes = s.Minutes,
+                    Seconds = s.Seconds,
+                    Distance = s.Distance,
+                    Label = s.Label,
+                    BearingRaw = s.BearingRaw,
+                });
+
+                await _landRepository.AddSegmentsAsync(created.Id, copiedSegments, cancellationToken);
+            }
+
+            return _mapper.Map<LandResponse>(created);
+        }
     }
 }

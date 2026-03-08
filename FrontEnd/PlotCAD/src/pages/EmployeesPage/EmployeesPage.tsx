@@ -6,7 +6,8 @@ import { IColumn } from "../../components/List/List.types";
 import type { IEmployee } from "../../types/employee.types";
 import EmployeeFormModal from "./components/EmployeeFormModal";
 
-const { listEmployees, deleteEmployee } = EmployeeApi();
+const { listEmployees, deleteEmployee, toggleEmployee, duplicateEmployee } =
+	EmployeeApi();
 
 const EmployeesPage = () => {
 	const [searchQuery, setSearchQuery] = useState("");
@@ -63,6 +64,18 @@ const EmployeesPage = () => {
 	const handleDelete = async (employee: IEmployee) => {
 		setOpenMenuId(null);
 		await deleteEmployee(employee.id);
+		fetchEmployees(page, pageSize, debouncedSearch);
+	};
+
+	const handleToggleActive = async (employee: IEmployee) => {
+		setOpenMenuId(null);
+		await toggleEmployee(employee.id);
+		fetchEmployees(page, pageSize, debouncedSearch);
+	};
+
+	const handleDuplicate = async (employee: IEmployee) => {
+		setOpenMenuId(null);
+		await duplicateEmployee(employee.id);
 		fetchEmployees(page, pageSize, debouncedSearch);
 	};
 
@@ -141,7 +154,7 @@ const EmployeesPage = () => {
 					{openMenuId === item.id && (
 						<>
 							<div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-							<div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-20">
+							<div className="absolute right-0 mt-1 w-44 bg-white border border-gray-200 rounded-md shadow-lg z-20">
 								<button
 									onClick={() => {
 										setOpenMenuId(null);
@@ -150,6 +163,18 @@ const EmployeesPage = () => {
 									className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors"
 								>
 									Editar
+								</button>
+								<button
+									onClick={() => handleToggleActive(item)}
+									className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+								>
+									{item.isActive ? "Desativar" : "Ativar"}
+								</button>
+								<button
+									onClick={() => handleDuplicate(item)}
+									className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+								>
+									Duplicar
 								</button>
 								<button
 									onClick={() => handleDelete(item)}
@@ -212,12 +237,12 @@ const EmployeesPage = () => {
 				/>
 			</div>
 
-		<EmployeeFormModal
-			modal={modal}
-			onClose={() => setModal(null)}
-			onSaved={() => fetchEmployees(page, pageSize, debouncedSearch)}
-		/>
-	</div>
+			<EmployeeFormModal
+				modal={modal}
+				onClose={() => setModal(null)}
+				onSaved={() => fetchEmployees(page, pageSize, debouncedSearch)}
+			/>
+		</div>
 	);
 };
 

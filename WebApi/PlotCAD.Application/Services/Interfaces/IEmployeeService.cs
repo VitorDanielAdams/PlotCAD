@@ -10,5 +10,7 @@ namespace PlotCAD.Application.Services.Interfaces
         Task<EmployeeResponse> CreateAsync(CreateEmployeeRequest request, CancellationToken cancellationToken = default);
         Task<EmployeeResponse> UpdateAsync(int id, UpdateEmployeeRequest request, CancellationToken cancellationToken = default);
         Task DeleteAsync(int id, CancellationToken cancellationToken = default);
+        Task ToggleActiveAsync(int id, CancellationToken cancellationToken = default);
+        Task<EmployeeResponse> DuplicateAsync(int id, CancellationToken cancellationToken = default);
     }
 }

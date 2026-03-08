@@ -102,6 +102,28 @@ namespace PlotCAD.Infrastructure.Repositories
             }, cancellationToken);
         }
 
+        public async Task<IEnumerable<Employee>> GetAllAsync(EmployeeListFilter? filter, CancellationToken cancellationToken = default)
+        {
+            var whereClause = GetListFilterWhere(filter, includeName: false);
+
+            var sql = $@"
+                SELECT *
+                FROM Employees
+                WHERE {BuildSoftDeleteFilter()}
+                  AND ({whereClause})
+                ORDER BY Name";
+
+            var parameters = BuildFilterParameters(filter, includeName: false);
+            parameters.Add("TenantId", GetCurrentTenantId());
+
+            var results = await QueryAsync<Employee>(sql, parameters, cancellationToken);
+
+            foreach (var e in results)
+                DecryptFields(e);
+
+            return results;
+        }
+
         public async Task<IEnumerable<Employee>> GetPagedAsync(int page, int pageSize, EmployeeListFilter? filter, CancellationToken cancellationToken = default)
         {
             var offset = (page - 1) * pageSize;
@@ -177,13 +199,13 @@ namespace PlotCAD.Infrastructure.Repositories
             return employee;
         }
 
-        private string GetListFilterWhere(EmployeeListFilter? filter)
+        private string GetListFilterWhere(EmployeeListFilter? filter, bool includeName = true)
         {
             var conditions = new List<string>();
 
             if (filter != null)
             {
-                if (!string.IsNullOrWhiteSpace(filter.Name))
+                if (includeName && !string.IsNullOrWhiteSpace(filter.Name))
                     conditions.Add("Name ILIKE '%' || @Name || '%'");
 
                 if (filter.IsActive.HasValue)
@@ -193,13 +215,13 @@ namespace PlotCAD.Infrastructure.Repositories
             return conditions.Count > 0 ? string.Join(" AND ", conditions) : "1=1";
         }
 
-        private Dictionary<string, object> BuildFilterParameters(EmployeeListFilter? filter)
+        private Dictionary<string, object> BuildFilterParameters(EmployeeListFilter? filter, bool includeName = true)
         {
             var parameters = new Dictionary<string, object>();
 
             if (filter != null)
             {
-                if (!string.IsNullOrWhiteSpace(filter.Name))
+                if (includeName && !string.IsNullOrWhiteSpace(filter.Name))
                     parameters.Add("Name", filter.Name);
 
                 if (filter.IsActive.HasValue)

@@ -11,5 +11,7 @@ namespace PlotCAD.Application.Services.Interfaces
         Task<LandResponse?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
         Task UpdateAsync(int id, LandSaveRequest request, CancellationToken cancellationToken = default);
         Task DeleteAsync(int id, CancellationToken cancellationToken = default);
+        Task ToggleActiveAsync(int id, CancellationToken cancellationToken = default);
+        Task<LandResponse> DuplicateAsync(int id, CancellationToken cancellationToken = default);
     }
 }

@@ -78,7 +78,44 @@ const EmployeeApi = () => {
 		}
 	};
 
-	return { listEmployees, createEmployee, updateEmployee, deleteEmployee };
+	const toggleEmployee = async (id: number): Promise<IResponse<unknown>> => {
+		try {
+			return await api.patch(`${path}/${id}/toggle-active`).then((v) => v.data);
+		} catch (error) {
+			const apiError = error as ApiError;
+			return {
+				success: false,
+				message: apiError.message,
+				data: null,
+				errors: [],
+				httpStatus: apiError.status,
+			};
+		}
+	};
+
+	const duplicateEmployee = async (id: number): Promise<IResponse<IEmployee>> => {
+		try {
+			return await api.post(`${path}/${id}/duplicate`).then((v) => v.data);
+		} catch (error) {
+			const apiError = error as ApiError;
+			return {
+				success: false,
+				message: apiError.message,
+				data: null,
+				errors: [],
+				httpStatus: apiError.status,
+			};
+		}
+	};
+
+	return {
+		listEmployees,
+		createEmployee,
+		updateEmployee,
+		deleteEmployee,
+		toggleEmployee,
+		duplicateEmployee,
+	};
 };
 
 export default EmployeeApi;

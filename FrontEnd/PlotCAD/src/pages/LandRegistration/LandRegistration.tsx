@@ -1,7 +1,7 @@
 import { Filter, Loader2, MoreVertical, Search } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { disableLand, getLandById, listLands } from "../../api/Land";
+import { duplicateLand, getLandById, listLands, toggleLand } from "../../api/Land";
 import KmlExportModal from "../../components/KmlExportModal";
 import List from "../../components/List";
 import { IColumn } from "../../components/List/List.types";
@@ -29,6 +29,7 @@ const LandRegistration = () => {
 	} | null>(null);
 	const [kmlLoadingId, setKmlLoadingId] = useState<number | null>(null);
 	const [disableLoadingId, setDisableLoadingId] = useState<number | null>(null);
+	const [duplicateLoadingId, setDuplicateLoadingId] = useState<number | null>(null);
 
 	const navigate = useNavigate();
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -95,15 +96,25 @@ const LandRegistration = () => {
 		}
 	};
 
-	const handleDisable = async (item: ILandListItem) => {
+	const handleToggleActive = async (item: ILandListItem) => {
 		setOpenMenuId(null);
-		if (!window.confirm(`Desabilitar a matrícula "${item.name}"?`)) return;
 		setDisableLoadingId(item.id);
 		try {
-			await disableLand(item.id);
+			await toggleLand(item.id);
 			fetchLands(page, pageSize, debouncedSearch);
 		} finally {
 			setDisableLoadingId(null);
+		}
+	};
+
+	const handleDuplicate = async (item: ILandListItem) => {
+		setOpenMenuId(null);
+		setDuplicateLoadingId(item.id);
+		try {
+			await duplicateLand(item.id);
+			fetchLands(page, pageSize, debouncedSearch);
+		} finally {
+			setDuplicateLoadingId(null);
 		}
 	};
 
@@ -174,7 +185,9 @@ const LandRegistration = () => {
 						}}
 						className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
 					>
-						{kmlLoadingId === item.id || disableLoadingId === item.id ? (
+						{kmlLoadingId === item.id ||
+						disableLoadingId === item.id ||
+						duplicateLoadingId === item.id ? (
 							<Loader2 className="h-4 w-4 animate-spin" />
 						) : (
 							<MoreVertical className="h-4 w-4" />
@@ -183,7 +196,7 @@ const LandRegistration = () => {
 					{openMenuId === item.id && (
 						<>
 							<div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-							<div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-20">
+							<div className="absolute right-0 mt-1 w-44 bg-white border border-gray-200 rounded-md shadow-lg z-20">
 								<button
 									onClick={() => {
 										navigate(`/v1/matricula/${item.id}`);
@@ -209,10 +222,16 @@ const LandRegistration = () => {
 									Exportar KML
 								</button>
 								<button
-									onClick={() => handleDisable(item)}
-									className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 transition-colors"
+									onClick={() => handleToggleActive(item)}
+									className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors"
 								>
-									Desabilitar
+									{item.isActive ? "Desativar" : "Ativar"}
+								</button>
+								<button
+									onClick={() => handleDuplicate(item)}
+									className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+								>
+									Duplicar
 								</button>
 							</div>
 						</>

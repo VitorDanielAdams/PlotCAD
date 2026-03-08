@@ -194,6 +194,23 @@ namespace PlotCAD.Infrastructure.Repositories
             }, cancellationToken);
         }
 
+        public async Task SetActiveAsync(int id, bool isActive, CancellationToken cancellationToken = default)
+        {
+            var sql = $@"
+                UPDATE Lands
+                SET IsActive = @IsActive,
+                    UpdatedAt = @UpdatedAt
+                WHERE Id = @Id AND {BuildSoftDeleteFilter()}";
+
+            await ExecuteAsync(sql, new
+            {
+                Id = id,
+                IsActive = isActive,
+                UpdatedAt = DateTimeOffset.UtcNow,
+                TenantId = GetCurrentTenantId()
+            }, cancellationToken);
+        }
+
         private string GetListFilterWhere(LandListFilter? filter)
         {
             var conditions = new List<string>();
