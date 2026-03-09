@@ -1,0 +1,178 @@
+import type maplibregl from "maplibre-gl";
+import { useEffect, useRef, useState } from "react";
+import { useMap } from "../../../../contexts/MapContext";
+
+export interface NtripFeature {
+	properties: {
+		id: string;
+		nome: string;
+		uf: string;
+		municipio: string;
+		latitude: number;
+		longitude: number;
+		altitude: number | null;
+		status: string;
+	};
+	latlng: { lat: number; lng: number };
+}
+
+interface NtripStationsLayerProps {
+	onFeatureSelect: (feature: NtripFeature | null) => void;
+	onLoadingChange?: (loading: boolean) => void;
+	onError?: (msg: string | null) => void;
+}
+
+const TILES_BASE = import.meta.env.VITE_TILES_BASE_URL ?? "/tiles";
+const SOURCE_ID = "rbmc-stations";
+
+export default function NtripStationsLayer({
+	onFeatureSelect,
+	onLoadingChange,
+	onError,
+}: NtripStationsLayerProps) {
+	const map = useMap();
+	const [ready, setReady] = useState(false);
+	const abortRef = useRef<AbortController | null>(null);
+
+	useEffect(() => {
+		const ac = new AbortController();
+		abortRef.current = ac;
+		onLoadingChange?.(true);
+		onError?.(null);
+		setReady(false);
+
+		(async () => {
+			let geoJson: object | null = null;
+
+			try {
+				const res = await fetch(`${TILES_BASE}/rbmc_stations.geojson`, {
+					signal: ac.signal,
+				});
+				if (res.ok) {
+					geoJson = await res.json();
+				} else {
+					throw new Error(`HTTP ${res.status}`);
+				}
+			} catch (err) {
+				if (ac.signal.aborted) return;
+				onError?.("Dados das estações NTRIP não disponíveis no momento.");
+				onLoadingChange?.(false);
+				return;
+			}
+
+			if (ac.signal.aborted) return;
+
+			// Add GeoJSON source
+			if (!map.getSource(SOURCE_ID)) {
+				map.addSource(SOURCE_ID, { type: "geojson", data: geoJson as object });
+			}
+
+			// Circle layer
+			if (!map.getLayer("rbmc-stations-circle")) {
+				map.addLayer({
+					id: "rbmc-stations-circle",
+					type: "circle",
+					source: SOURCE_ID,
+					paint: {
+						"circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 4, 8, 7, 12, 10],
+						"circle-color": "#0ea5e9",
+						"circle-stroke-width": 2,
+						"circle-stroke-color": "#ffffff",
+						"circle-opacity": [
+							"case",
+							["==", ["upcase", ["get", "status"]], "INATIVA"],
+							0.4,
+							1,
+						],
+					},
+				});
+			}
+
+			// Label layer
+			if (!map.getLayer("rbmc-stations-label")) {
+				map.addLayer({
+					id: "rbmc-stations-label",
+					type: "symbol",
+					source: SOURCE_ID,
+					minzoom: 5,
+					layout: {
+						"text-field": ["get", "id"],
+						"text-size": 10,
+						"text-offset": [0, 1.4],
+						"text-anchor": "top",
+						"text-font": ["Open Sans Regular"],
+					},
+					paint: {
+						"text-color": "#0369a1",
+						"text-halo-color": "#ffffff",
+						"text-halo-width": 1.5,
+					},
+				});
+			}
+
+			onLoadingChange?.(false);
+			setReady(true);
+		})();
+
+		return () => {
+			ac.abort();
+			for (const id of ["rbmc-stations-label", "rbmc-stations-circle"]) {
+				if (map.getLayer(id)) map.removeLayer(id);
+			}
+			if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [map]);
+
+	// Click handler
+	useEffect(() => {
+		if (!ready) return;
+
+		const handleClick = (e: {
+			point: maplibregl.PointLike;
+			lngLat: maplibregl.LngLat;
+		}) => {
+			if (!map.getLayer("rbmc-stations-circle")) return;
+			const features = map.queryRenderedFeatures(e.point, {
+				layers: ["rbmc-stations-circle"],
+			});
+			if (features.length > 0) {
+				const p = features[0].properties ?? {};
+				onFeatureSelect({
+					properties: {
+						id: String(p.id ?? ""),
+						nome: String(p.nome ?? ""),
+						uf: String(p.uf ?? ""),
+						municipio: String(p.municipio ?? ""),
+						latitude: Number(p.latitude ?? 0),
+						longitude: Number(p.longitude ?? 0),
+						altitude: p.altitude != null ? Number(p.altitude) : null,
+						status: String(p.status ?? ""),
+					},
+					latlng: { lat: e.lngLat.lat, lng: e.lngLat.lng },
+				});
+				return;
+			}
+			onFeatureSelect(null);
+		};
+
+		const enterCursor = () => {
+			map.getCanvas().style.cursor = "pointer";
+		};
+		const leaveCursor = () => {
+			map.getCanvas().style.cursor = "";
+		};
+
+		map.on("click", handleClick as Parameters<typeof map.on>[1]);
+		map.on("mouseenter", "rbmc-stations-circle", enterCursor);
+		map.on("mouseleave", "rbmc-stations-circle", leaveCursor);
+
+		return () => {
+			map.off("click", handleClick as Parameters<typeof map.on>[1]);
+			map.off("mouseenter", "rbmc-stations-circle", enterCursor);
+			map.off("mouseleave", "rbmc-stations-circle", leaveCursor);
+		};
+	}, [map, ready, onFeatureSelect]);
+
+	return null;
+}
