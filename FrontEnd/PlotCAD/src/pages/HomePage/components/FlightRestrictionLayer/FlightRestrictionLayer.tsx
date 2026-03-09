@@ -36,6 +36,7 @@ export default function FlightRestrictionLayer({
 	// Add PMTiles sources + layers once on mount
 	useEffect(() => {
 		if (addedRef.current) return;
+		if (!(map as any).style) return;
 
 		onLoadingChange?.(true);
 		onError?.(null);
@@ -204,14 +205,14 @@ export default function FlightRestrictionLayer({
 		return () => {
 			map.off("error", handleError as Parameters<typeof map.on>[1]);
 			map.off("idle", handleIdle);
-
+			addedRef.current = false;
+			if (!(map as any).style) return;
 			for (const id of [AIRPORTS_LABEL_ID, AIRPORTS_CIRCLE_ID, STROKE_ID, FILL_ID]) {
 				if (map.getLayer(id)) map.removeLayer(id);
 			}
 			for (const id of [SOURCE_AIRSPACE, SOURCE_AIRPORTS]) {
 				if (map.getSource(id)) map.removeSource(id);
 			}
-			addedRef.current = false;
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [map]);

@@ -18,6 +18,7 @@ export default memo(function PmTilesLayer({ config, visible }: PmTilesLayerProps
 	// Add source + layers once
 	useEffect(() => {
 		if (addedRef.current) return;
+		if (!(map as any).style) return;
 
 		const pmtilesUrl = config.url.startsWith("pmtiles://")
 			? config.url
@@ -61,16 +62,18 @@ export default memo(function PmTilesLayer({ config, visible }: PmTilesLayerProps
 		addedRef.current = true;
 
 		return () => {
+			addedRef.current = false;
+			if (!(map as any).style) return;
 			if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
 			if (map.getLayer(strokeLayerId)) map.removeLayer(strokeLayerId);
 			if (map.getSource(sourceId)) map.removeSource(sourceId);
-			addedRef.current = false;
 		};
 	}, [map, sourceId, fillLayerId, strokeLayerId, config]);
 
 	// Toggle visibility
 	useEffect(() => {
 		if (!addedRef.current) return;
+		if (!(map as any).style) return;
 		const vis = visible ? "visible" : "none";
 		if (map.getLayer(fillLayerId)) {
 			map.setLayoutProperty(fillLayerId, "visibility", vis);

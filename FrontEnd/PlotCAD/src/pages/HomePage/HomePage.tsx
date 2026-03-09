@@ -81,6 +81,7 @@ function MapContent() {
 
 	// Sync MapLibre layer order when layerOrder changes
 	useEffect(() => {
+		if (!(map as any).style) return;
 		for (let i = 0; i < layerOrder.length; i++) {
 			const fillId = `${layerOrder[i]}-fill`;
 			const strokeId = `${layerOrder[i]}-stroke`;
