@@ -1,8 +1,11 @@
-import L from "leaflet";
 import { Check, Copy, Download, Loader2, MapPin, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useMap } from "react-leaflet";
-import type { MapLayerConfig, SelectedFeature } from "../../../../types/map.types";
+import { useMap } from "../../../../contexts/MapContext";
+import type {
+	MapFeatureProperties,
+	MapLayerConfig,
+	SelectedFeature,
+} from "../../../../types/map.types";
 import { deduplicatedFetch } from "../../../../utils/geometryCache";
 import {
 	buildGeoJsonPolygonKml,
@@ -105,24 +108,27 @@ function ConditionBadge({ value }: { value: string }) {
 
 const PANEL_WIDTH = 320;
 
-const GEOSERVER_BASE = "https://geoserver.car.gov.br/geoserver/sicar/ows";
+// ── Geometry fetchers per data source ──────────────────────────────
 
-async function fetchCarGeometry(codImovel: string, uf: string): Promise<string | null> {
-	const cacheKey = `${codImovel}:${uf}`;
+const GEOSERVER_CAR = "https://geoserver.car.gov.br/geoserver/sicar/ows";
+
+async function fetchCarGeometry(id: string, props: MapFeatureProperties): Promise<string | null> {
+	const uf = props.cod_estado ? String(props.cod_estado) : null;
+	if (!uf) return null;
+	const cacheKey = `car:${id}:${uf}`;
 	return deduplicatedFetch(cacheKey, async () => {
 		try {
-			const ufLower = uf.toLowerCase();
 			const params = new URLSearchParams({
 				service: "WFS",
 				version: "2.0.0",
 				request: "GetFeature",
-				typeName: `sicar:sicar_imoveis_${ufLower}`,
+				typeName: `sicar:sicar_imoveis_${uf.toLowerCase()}`,
 				outputFormat: "application/json",
-				CQL_FILTER: `cod_imovel='${codImovel}'`,
+				CQL_FILTER: `cod_imovel='${id}'`,
 				propertyName: "geo_area_imovel",
 				count: "1",
 			});
-			const res = await fetch(`${GEOSERVER_BASE}?${params}`, {
+			const res = await fetch(`${GEOSERVER_CAR}?${params}`, {
 				signal: AbortSignal.timeout(10000),
 			});
 			if (!res.ok) return null;
@@ -136,8 +142,23 @@ async function fetchCarGeometry(codImovel: string, uf: string): Promise<string |
 	});
 }
 
-// Keys used in header or special ID section — excluded from data fields loop
-const HEADER_KEYS = new Set(["cod_imovel", "municipio", "cod_estado", "ind_tipo"]);
+// SIGEF/SNCI geometry endpoints require gov.br auth — fallback to point KML
+async function fetchSigefGeometry(_id: string, _props: MapFeatureProperties): Promise<string | null> {
+	return null;
+}
+
+async function fetchSnciGeometry(_id: string, _props: MapFeatureProperties): Promise<string | null> {
+	return null;
+}
+
+const GEOMETRY_FETCHERS: Record<
+	string,
+	(id: string, props: MapFeatureProperties) => Promise<string | null>
+> = {
+	car: fetchCarGeometry,
+	sigef: fetchSigefGeometry,
+	snci: fetchSnciGeometry,
+};
 
 export default function PropertyInfoPanel({
 	feature,
@@ -150,15 +171,10 @@ export default function PropertyInfoPanel({
 	const [downloading, setDownloading] = useState(false);
 
 	useEffect(() => {
-		if (!panelRef.current) return;
-		L.DomEvent.disableClickPropagation(panelRef.current);
-		L.DomEvent.disableScrollPropagation(panelRef.current);
-	}, []);
-
-	useEffect(() => {
 		const updatePosition = () => {
-			const pt = map.latLngToContainerPoint([feature.latlng.lat, feature.latlng.lng]);
-			const mapSize = map.getSize();
+			const pt = map.project([feature.latlng.lng, feature.latlng.lat]);
+			const container = map.getContainer();
+			const mapWidth = container.clientWidth;
 			const panelHeight = panelRef.current?.offsetHeight ?? 280;
 			const margin = 10;
 
@@ -166,52 +182,73 @@ export default function PropertyInfoPanel({
 			let top = pt.y - panelHeight - 16;
 
 			if (left < margin) left = margin;
-			if (left + PANEL_WIDTH > mapSize.x - margin)
-				left = mapSize.x - PANEL_WIDTH - margin;
+			if (left + PANEL_WIDTH > mapWidth - margin)
+				left = mapWidth - PANEL_WIDTH - margin;
 			if (top < margin) top = pt.y + 16;
 
 			setStyle({ left, top, opacity: 1 });
 		};
 
 		updatePosition();
-		map.on("move zoom moveend", updatePosition);
+		map.on("move", updatePosition);
+		map.on("zoom", updatePosition);
+		map.on("moveend", updatePosition);
 		return () => {
-			map.off("move zoom moveend", updatePosition);
+			map.off("move", updatePosition);
+			map.off("zoom", updatePosition);
+			map.off("moveend", updatePosition);
 		};
 	}, [map, feature.latlng]);
 
 	const props = feature.properties;
 	const fields = layerConfig?.fields ?? [];
+	const kmlCfg = layerConfig?.kmlConfig;
 
-	const codImovel = props.cod_imovel ? String(props.cod_imovel) : null;
-	const uf = props.cod_estado ? String(props.cod_estado) : null;
+	// Dynamic identifier based on kmlConfig
+	const identifierValue = kmlCfg ? (props[kmlCfg.identifierKey] ? String(props[kmlCfg.identifierKey]) : null) : null;
+	const identifierLabel = kmlCfg?.identifierLabel ?? "Código";
+
+	// Location info (CAR-specific but harmless for others — just won't render if missing)
 	const municipality = props.municipio ? String(props.municipio) : null;
+	const uf = props.cod_estado ? String(props.cod_estado) : null;
 	const locationText = [municipality, uf].filter(Boolean).join("/");
 
+	// Title
 	const tipoCode = props.ind_tipo ? String(props.ind_tipo) : null;
 	const propertyType = tipoCode ? PROPERTY_TYPE_MAP[tipoCode] ?? tipoCode : null;
 	const panelTitle = propertyType || layerConfig?.label || "Informações";
 
-	const hasKmlSupport = fields.some((f) => f.key === "cod_imovel") && Boolean(codImovel);
+	// KML support — enabled when layer has kmlConfig and identifier exists
+	const hasKmlSupport = Boolean(kmlCfg && identifierValue);
+
+	// Keys to exclude from the data fields list (shown in header/ID section)
+	const headerKeys = new Set<string>();
+	if (kmlCfg) headerKeys.add(kmlCfg.identifierKey);
+	headerKeys.add("municipio");
+	headerKeys.add("cod_estado");
+	headerKeys.add("ind_tipo");
 
 	const handleDownloadKml = useCallback(async () => {
-		const code = codImovel ?? "";
-		const name = code || panelTitle;
+		const id = identifierValue ?? "";
+		const name = id || panelTitle;
 
 		const descParts: string[] = [];
-		if (code) descParts.push(`Código CAR: ${code}`);
+		if (id) descParts.push(`${identifierLabel}: ${id}`);
 		if (municipality) descParts.push(`Município: ${municipality}`);
 		if (uf) descParts.push(`UF: ${uf}`);
 		const desc = descParts.join("\n");
 
 		let kml: string | null = null;
 
-		if (code && uf) {
-			setDownloading(true);
-			const geoJson = await fetchCarGeometry(code, uf);
-			setDownloading(false);
-			if (geoJson) {
-				kml = buildGeoJsonPolygonKml(name, geoJson, desc);
+		if (id && kmlCfg?.geometryFetcher) {
+			const fetcher = GEOMETRY_FETCHERS[kmlCfg.geometryFetcher];
+			if (fetcher) {
+				setDownloading(true);
+				const geoJson = await fetcher(id, props);
+				setDownloading(false);
+				if (geoJson) {
+					kml = buildGeoJsonPolygonKml(name, geoJson, desc);
+				}
 			}
 		}
 
@@ -219,11 +256,11 @@ export default function PropertyInfoPanel({
 			kml = buildPointKml(name, feature.latlng.lat, feature.latlng.lng, desc);
 		}
 
-		const filename = code ? code.replace(/[^a-z0-9_\-]/gi, "_") : "imovel_rural";
+		const filename = id ? id.replace(/[^a-z0-9_\-]/gi, "_") : "imovel";
 		downloadKml(filename, kml);
-	}, [feature, codImovel, municipality, uf, panelTitle]);
+	}, [feature, identifierValue, identifierLabel, municipality, uf, panelTitle, kmlCfg, props]);
 
-	const dataFields = fields.filter((f) => !HEADER_KEYS.has(f.key));
+	const dataFields = fields.filter((f) => !headerKeys.has(f.key));
 
 	return (
 		<div
@@ -252,17 +289,17 @@ export default function PropertyInfoPanel({
 				</button>
 			</div>
 
-			{/* ID section */}
-			{codImovel && (
+			{/* ID section — dynamic per layer */}
+			{identifierValue && (
 				<div className="px-3 py-2 border-b border-gray-100 bg-gray-50/50">
 					<div className="flex items-center justify-between mb-0.5">
 						<span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
-							Código CAR
+							{identifierLabel}
 						</span>
-						<CopyButton text={codImovel} />
+						<CopyButton text={identifierValue} />
 					</div>
 					<p className="text-xs font-mono text-gray-800 break-all leading-relaxed">
-						{codImovel}
+						{identifierValue}
 					</p>
 				</div>
 			)}
@@ -340,7 +377,7 @@ export default function PropertyInfoPanel({
 				</div>
 			</div>
 
-			{/* KML Download — only for layers with CAR geometry support */}
+			{/* KML Download */}
 			{hasKmlSupport && (
 				<div className="px-3 py-2 border-t border-gray-200 bg-gray-50">
 					<button

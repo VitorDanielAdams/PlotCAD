@@ -1,12 +1,13 @@
-import L from "leaflet";
-import { Eye, EyeOff, Layers, X } from "lucide-react";
-import { memo, useEffect, useRef } from "react";
+import { ArrowDown, ArrowUp, Eye, EyeOff, Layers, X } from "lucide-react";
+import { memo, useRef } from "react";
 import { LAYER_GROUPS, MAP_LAYERS } from "../../../../config/mapLayers";
 import type { MapLayerConfig } from "../../../../types/map.types";
 
 interface MapLayerControlProps {
 	activeLayers: Set<string>;
+	layerOrder: string[];
 	onToggle: (layerId: string) => void;
+	onMoveLayer: (layerId: string, direction: "up" | "down") => void;
 	zoomTooLow: boolean;
 	maxLayersReached: boolean;
 	isExpanded: boolean;
@@ -64,9 +65,58 @@ function LayerItem({
 	);
 }
 
+function OrderItem({
+	layer,
+	index,
+	isFirst,
+	isLast,
+	onMove,
+}: {
+	layer: MapLayerConfig;
+	index: number;
+	isFirst: boolean;
+	isLast: boolean;
+	onMove: (direction: "up" | "down") => void;
+}) {
+	return (
+		<div className="flex items-center gap-1.5 px-3 py-1.5">
+			<span
+				className="w-2.5 h-2.5 rounded-sm shrink-0"
+				style={{ backgroundColor: layer.style.strokeColor }}
+			/>
+			<span className="text-[10px] text-gray-500 shrink-0 w-3 text-right">
+				{index + 1}.
+			</span>
+			<span className="text-xs text-gray-700 flex-1 truncate">{layer.label}</span>
+			<div className="flex gap-0.5 shrink-0">
+				<button
+					type="button"
+					onClick={() => onMove("up")}
+					disabled={isLast}
+					className="p-0.5 text-gray-400 hover:text-gray-600 disabled:text-gray-200 disabled:cursor-not-allowed transition-colors"
+					title="Mover para frente"
+				>
+					<ArrowUp className="w-3 h-3" />
+				</button>
+				<button
+					type="button"
+					onClick={() => onMove("down")}
+					disabled={isFirst}
+					className="p-0.5 text-gray-400 hover:text-gray-600 disabled:text-gray-200 disabled:cursor-not-allowed transition-colors"
+					title="Mover para trás"
+				>
+					<ArrowDown className="w-3 h-3" />
+				</button>
+			</div>
+		</div>
+	);
+}
+
 export default memo(function MapLayerControl({
 	activeLayers,
+	layerOrder,
 	onToggle,
+	onMoveLayer,
 	zoomTooLow,
 	maxLayersReached,
 	isExpanded,
@@ -75,11 +125,9 @@ export default memo(function MapLayerControl({
 	const activeCount = activeLayers.size;
 	const containerRef = useRef<HTMLDivElement>(null);
 
-	useEffect(() => {
-		if (!containerRef.current) return;
-		L.DomEvent.disableClickPropagation(containerRef.current);
-		L.DomEvent.disableScrollPropagation(containerRef.current);
-	}, []);
+	const orderedLayers = layerOrder
+		.map((id) => MAP_LAYERS.find((l) => l.id === id))
+		.filter((l): l is MapLayerConfig => l !== undefined);
 
 	return (
 		<div ref={containerRef}>
@@ -144,6 +192,28 @@ export default memo(function MapLayerControl({
 							);
 						})}
 					</div>
+
+					{orderedLayers.length >= 2 && (
+						<div className="border-t border-gray-200">
+							<div className="px-3 py-1.5 bg-gray-50/50 border-b border-gray-100">
+								<p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+									Ordem (topo = frente)
+								</p>
+							</div>
+							<div className="divide-y divide-gray-50">
+								{[...orderedLayers].reverse().map((layer, i) => (
+									<OrderItem
+										key={layer.id}
+										layer={layer}
+										index={i}
+										isFirst={i === orderedLayers.length - 1}
+										isLast={i === 0}
+										onMove={(dir) => onMoveLayer(layer.id, dir)}
+									/>
+								))}
+							</div>
+						</div>
+					)}
 
 					{zoomTooLow && activeCount > 0 && (
 						<div className="px-3 py-2 bg-amber-50 border-t border-amber-100">

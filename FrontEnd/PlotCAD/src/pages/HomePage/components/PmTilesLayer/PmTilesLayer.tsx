@@ -1,129 +1,84 @@
-import type L from "leaflet";
-import { leafletLayer, PolygonSymbolizer } from "protomaps-leaflet";
-import { memo, useCallback, useEffect, useRef } from "react";
-import { useMap } from "react-leaflet";
-import type { MapLayerConfig, SelectedFeature } from "../../../../types/map.types";
+import { memo, useEffect, useRef } from "react";
+import { useMap } from "../../../../contexts/MapContext";
+import type { MapLayerConfig } from "../../../../types/map.types";
 
 interface PmTilesLayerProps {
 	config: MapLayerConfig;
 	visible: boolean;
-	onFeatureClick?: (feature: SelectedFeature) => void;
-	onMapClickEmpty?: () => void;
 }
 
-export default memo(function PmTilesLayer({
-	config,
-	visible,
-	onFeatureClick,
-	onMapClickEmpty,
-}: PmTilesLayerProps) {
+export default memo(function PmTilesLayer({ config, visible }: PmTilesLayerProps) {
 	const map = useMap();
-	const layerRef = useRef<L.Layer | null>(null);
-	const onFeatureClickRef = useRef(onFeatureClick);
-	onFeatureClickRef.current = onFeatureClick;
-	const onMapClickEmptyRef = useRef(onMapClickEmpty);
-	onMapClickEmptyRef.current = onMapClickEmpty;
+	const addedRef = useRef(false);
 
-	// Create layer once on mount — preserves internal tile cache across visibility toggles
+	const sourceId = config.id;
+	const fillLayerId = `${config.id}-fill`;
+	const strokeLayerId = `${config.id}-stroke`;
+
+	// Add source + layers once
 	useEffect(() => {
-		const layer = leafletLayer({
-			url: config.url,
-			maxDataZoom: config.maxZoom,
-			paintRules: [
-				{
-					dataLayer: config.sourceLayer,
-					symbolizer: new PolygonSymbolizer({
-						fill: config.style.fillColor,
-						opacity: config.style.fillOpacity,
-						stroke: config.style.strokeColor,
-						width: config.style.strokeWidth,
-					}),
-				},
-			],
+		if (addedRef.current) return;
+
+		const pmtilesUrl = config.url.startsWith("pmtiles://")
+			? config.url
+			: `pmtiles://${config.url}`;
+
+		map.addSource(sourceId, {
+			type: "vector",
+			url: pmtilesUrl,
+			minzoom: config.minZoom,
+			maxzoom: config.maxZoom,
 		});
 
-		layerRef.current = layer;
+		map.addLayer({
+			id: fillLayerId,
+			type: "fill",
+			source: sourceId,
+			"source-layer": config.sourceLayer,
+			paint: {
+				"fill-color": config.style.fillColor,
+				"fill-opacity": config.style.fillOpacity,
+			},
+			layout: { visibility: "none" },
+			minzoom: config.minZoom,
+			maxzoom: config.maxZoom + 4,
+		});
+
+		map.addLayer({
+			id: strokeLayerId,
+			type: "line",
+			source: sourceId,
+			"source-layer": config.sourceLayer,
+			paint: {
+				"line-color": config.style.strokeColor,
+				"line-width": config.style.strokeWidth,
+			},
+			layout: { visibility: "none" },
+			minzoom: config.minZoom,
+			maxzoom: config.maxZoom + 4,
+		});
+
+		addedRef.current = true;
 
 		return () => {
-			if (layerRef.current) {
-				map.removeLayer(layerRef.current);
-				layerRef.current = null;
-			}
+			if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
+			if (map.getLayer(strokeLayerId)) map.removeLayer(strokeLayerId);
+			if (map.getSource(sourceId)) map.removeSource(sourceId);
+			addedRef.current = false;
 		};
-	}, [config.url, config.sourceLayer, config.style, config.maxZoom, map]);
+	}, [map, sourceId, fillLayerId, strokeLayerId, config]);
 
-	// Toggle visibility without destroying — avoids re-fetching PMTiles data
+	// Toggle visibility
 	useEffect(() => {
-		if (!layerRef.current) return;
-
-		if (visible) {
-			if (!map.hasLayer(layerRef.current)) {
-				layerRef.current.addTo(map);
-			}
-		} else {
-			if (map.hasLayer(layerRef.current)) {
-				map.removeLayer(layerRef.current);
-			}
+		if (!addedRef.current) return;
+		const vis = visible ? "visible" : "none";
+		if (map.getLayer(fillLayerId)) {
+			map.setLayoutProperty(fillLayerId, "visibility", vis);
 		}
-	}, [visible, map]);
-
-	const handleClick = useCallback(
-		(e: L.LeafletMouseEvent) => {
-			if (!layerRef.current || !config.clickable || !onFeatureClickRef.current) return;
-
-			const layer = layerRef.current as any;
-			if (typeof layer.queryTileFeaturesDebug !== "function") return;
-
-			const bySource: Map<string, any[]> = layer.queryTileFeaturesDebug(
-				e.latlng.lng,
-				e.latlng.lat,
-			);
-
-			if (!bySource || bySource.size === 0) {
-				onMapClickEmptyRef.current?.();
-				return;
-			}
-
-			let picked: any = null;
-
-			for (const features of bySource.values()) {
-				const match = features.find((f: any) => f.layerName === config.sourceLayer);
-				if (match) {
-					picked = match;
-					break;
-				}
-			}
-
-			if (!picked) {
-				for (const features of bySource.values()) {
-					if (features.length > 0) {
-						picked = features[0];
-						break;
-					}
-				}
-			}
-
-			if (!picked) {
-				onMapClickEmptyRef.current?.();
-				return;
-			}
-
-			onFeatureClickRef.current({
-				layerId: config.id,
-				properties: picked.feature?.props ?? {},
-				latlng: { lat: e.latlng.lat, lng: e.latlng.lng },
-			});
-		},
-		[config.id, config.clickable, config.sourceLayer],
-	);
-
-	useEffect(() => {
-		if (!visible || !config.clickable) return;
-		map.on("click", handleClick);
-		return () => {
-			map.off("click", handleClick);
-		};
-	}, [visible, config.clickable, map, handleClick]);
+		if (map.getLayer(strokeLayerId)) {
+			map.setLayoutProperty(strokeLayerId, "visibility", vis);
+		}
+	}, [visible, map, fillLayerId, strokeLayerId]);
 
 	return null;
 });

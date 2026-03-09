@@ -1,7 +1,6 @@
-import L from "leaflet";
 import { Loader2, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useMap } from "react-leaflet";
+import { useMap } from "../../../../contexts/MapContext";
 
 interface NominatimResult {
 	place_id: number;
@@ -58,7 +57,7 @@ export default function LocationSearch() {
 	const handleSelect = (result: NominatimResult) => {
 		const lat = parseFloat(result.lat);
 		const lng = parseFloat(result.lon);
-		map.flyTo([lat, lng], 14, { duration: 1.5 });
+		map.flyTo({ center: [lng, lat], zoom: 14, duration: 1500 });
 		setQuery(result.display_name.split(",")[0]);
 		setOpen(false);
 		setResults([]);
@@ -69,12 +68,6 @@ export default function LocationSearch() {
 		setResults([]);
 		setOpen(false);
 	};
-
-	useEffect(() => {
-		if (!containerRef.current) return;
-		L.DomEvent.disableClickPropagation(containerRef.current);
-		L.DomEvent.disableScrollPropagation(containerRef.current);
-	}, []);
 
 	useEffect(() => {
 		const handleClickOutside = (e: MouseEvent) => {

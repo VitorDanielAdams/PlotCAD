@@ -11,6 +11,12 @@ export interface MapLayerField {
 	format?: "text" | "number" | "date" | "area" | "propertyType" | "condition";
 }
 
+export interface MapLayerKmlConfig {
+	identifierKey: string;
+	identifierLabel: string;
+	geometryFetcher?: "car" | "sigef" | "snci";
+}
+
 export interface MapLayerConfig {
 	id: string;
 	group: string;
@@ -22,6 +28,7 @@ export interface MapLayerConfig {
 	style: MapLayerStyle;
 	clickable: boolean;
 	fields?: MapLayerField[];
+	kmlConfig?: MapLayerKmlConfig;
 }
 
 export interface MapLayerGroup {
