@@ -10,10 +10,9 @@ namespace PlotCAD.Application.DTOs.Backoffice
         public string Email { get; init; } = string.Empty;
 
         [Required(ErrorMessage = "Password is required")]
-        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
         [MaxLength(100, ErrorMessage = "Password must not exceed 100 characters")]
         public string Password { get; init; } = string.Empty;
     }
 
-    public record BackofficeLoginResponse(string Name, string Email);
+    public record BackofficeLoginResponse(string Token, string Name, string Email);
 }

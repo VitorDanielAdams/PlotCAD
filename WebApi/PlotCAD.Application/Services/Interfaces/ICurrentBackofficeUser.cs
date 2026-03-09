@@ -5,8 +5,9 @@ namespace PlotCAD.Application.Services.Interfaces
         int? ManagerId { get; }
         string? Email { get; }
         string? Name { get; }
+        string? IpAddress { get; }
         bool IsAuthenticated { get; }
         int GetManagerId();
-        void SetManager(int managerId, string email, string name);
+        void SetManager(int managerId, string email, string name, string? ipAddress);
     }
 }

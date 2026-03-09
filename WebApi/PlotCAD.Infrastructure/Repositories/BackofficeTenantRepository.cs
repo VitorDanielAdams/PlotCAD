@@ -10,6 +10,20 @@ namespace PlotCAD.Infrastructure.Repositories
     {
         private readonly IDbConnectionFactory _connectionFactory;
 
+        private class TenantRow
+        {
+            public Guid Id { get; set; }
+            public string Name { get; set; } = "";
+            public PlanType PlanType { get; set; }
+            public int MaxUsers { get; set; }
+            public SubscriptionStatus SubscriptionStatus { get; set; }
+            public DateTimeOffset? SubscriptionExpiresAt { get; set; }
+            public string? ExternalSubscriptionId { get; set; }
+            public DateTimeOffset CreatedAt { get; set; }
+            public DateTimeOffset? UpdatedAt { get; set; }
+            public long UserCount { get; set; }
+        }
+
         public BackofficeTenantRepository(IDbConnectionFactory connectionFactory)
         {
             _connectionFactory = connectionFactory;
@@ -37,7 +51,7 @@ namespace PlotCAD.Infrastructure.Repositories
 
             var sql = $@"
                 SELECT t.Id, t.Name, t.PlanType, t.MaxUsers, t.SubscriptionStatus,
-                       t.SubscriptionExpiresAt, t.ExternalSubscriptionId, t.StripeCustomerId,
+                       t.SubscriptionExpiresAt, t.ExternalSubscriptionId,
                        t.CreatedAt, t.UpdatedAt,
                        COUNT(u.Id) FILTER (WHERE u.DeletedAt IS NULL) AS UserCount
                 FROM Tenants t
@@ -51,22 +65,22 @@ namespace PlotCAD.Infrastructure.Repositories
             parameters.Add("Offset", (page - 1) * pageSize);
 
             using var connection = await _connectionFactory.CreateConnectionAsync(ct);
-            var rows = await connection.QueryAsync(sql, parameters);
+            var rows = await connection.QueryAsync<TenantRow>(sql, parameters);
 
             return rows.Select(r => (
                 new Tenant
                 {
                     Id = r.Id,
                     Name = r.Name,
-                    PlanType = (PlanType)r.PlanType,
+                    PlanType = r.PlanType,
                     MaxUsers = r.MaxUsers,
-                    SubscriptionStatus = (SubscriptionStatus)r.SubscriptionStatus,
+                    SubscriptionStatus = r.SubscriptionStatus,
                     SubscriptionExpiresAt = r.SubscriptionExpiresAt,
                     ExternalSubscriptionId = r.ExternalSubscriptionId,
                     CreatedAt = r.CreatedAt,
                     UpdatedAt = r.UpdatedAt
                 },
-                (int)(long)r.UserCount
+                (int)r.UserCount
             ));
         }
 
@@ -98,7 +112,7 @@ namespace PlotCAD.Infrastructure.Repositories
         {
             const string sql = @"
                 SELECT t.Id, t.Name, t.PlanType, t.MaxUsers, t.SubscriptionStatus,
-                       t.SubscriptionExpiresAt, t.ExternalSubscriptionId, t.StripeCustomerId,
+                       t.SubscriptionExpiresAt, t.ExternalSubscriptionId,
                        t.CreatedAt, t.UpdatedAt,
                        COUNT(u.Id) FILTER (WHERE u.DeletedAt IS NULL) AS UserCount
                 FROM Tenants t
@@ -107,7 +121,7 @@ namespace PlotCAD.Infrastructure.Repositories
                 GROUP BY t.Id";
 
             using var connection = await _connectionFactory.CreateConnectionAsync(ct);
-            var row = await connection.QueryFirstOrDefaultAsync(sql, new { Id = id });
+            var row = await connection.QueryFirstOrDefaultAsync<TenantRow>(sql, new { Id = id });
 
             if (row == null)
                 return (null, 0);
@@ -116,14 +130,14 @@ namespace PlotCAD.Infrastructure.Repositories
             {
                 Id = row.Id,
                 Name = row.Name,
-                PlanType = (PlanType)row.PlanType,
+                PlanType = row.PlanType,
                 MaxUsers = row.MaxUsers,
-                SubscriptionStatus = (SubscriptionStatus)row.SubscriptionStatus,
+                SubscriptionStatus = row.SubscriptionStatus,
                 SubscriptionExpiresAt = row.SubscriptionExpiresAt,
                 ExternalSubscriptionId = row.ExternalSubscriptionId,
                 CreatedAt = row.CreatedAt,
                 UpdatedAt = row.UpdatedAt
-            }, (int)(long)row.UserCount);
+            }, (int)row.UserCount);
         }
 
         public async Task UpdateAsync(Guid id, SubscriptionStatus? status, DateTimeOffset? expiresAt,

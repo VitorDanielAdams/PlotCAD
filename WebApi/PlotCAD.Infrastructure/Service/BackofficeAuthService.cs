@@ -1,5 +1,6 @@
 using BCrypt.Net;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using PlotCAD.Application.DTOs.Backoffice;
 using PlotCAD.Application.Repositories;
@@ -14,16 +15,26 @@ namespace PlotCAD.Infrastructure.Service
     {
         private const int WorkFactor = 12;
         private readonly IBackofficeManagerRepository _managerRepository;
+        private readonly IAuditLogService _auditLogService;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<BackofficeAuthService> _logger;
 
-        public BackofficeAuthService(IBackofficeManagerRepository managerRepository, IConfiguration configuration)
+        public BackofficeAuthService(
+            IBackofficeManagerRepository managerRepository,
+            IAuditLogService auditLogService,
+            IConfiguration configuration,
+            ILogger<BackofficeAuthService> logger)
         {
             _managerRepository = managerRepository;
+            _auditLogService = auditLogService;
             _configuration = configuration;
+            _logger = logger;
         }
 
-        public async Task<BackofficeLoginResponse> AuthenticateAsync(BackofficeLoginRequest request, CancellationToken ct = default)
+        public async Task<BackofficeLoginResponse> LoginAsync(BackofficeLoginRequest request, string? ipAddress, CancellationToken ct = default)
         {
+            _logger.LogInformation("Backoffice login attempt for: {Email}", request.Email);
+
             var manager = await _managerRepository.GetByEmailAsync(request.Email, ct);
 
             if (manager == null)
@@ -42,10 +53,15 @@ namespace PlotCAD.Infrastructure.Service
             if (!valid)
                 throw new UnauthorizedAccessException("Invalid credentials");
 
-            return new BackofficeLoginResponse(manager.Name, manager.Email);
+            var token = GenerateToken(manager.Id, manager.Email, manager.Name);
+
+            await _auditLogService.LogAsync(manager.Id, "manager.login", "BackofficeManager",
+                manager.Id.ToString(), null, ipAddress, ct);
+
+            return new BackofficeLoginResponse(token, manager.Name, manager.Email);
         }
 
-        public string GenerateToken(int managerId, string email, string name)
+        private string GenerateToken(int managerId, string email, string name)
         {
             var claims = new[]
             {

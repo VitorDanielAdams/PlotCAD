@@ -1,20 +1,25 @@
+using Microsoft.Extensions.Logging;
 using PlotCAD.Application.DTOs.Backoffice;
 using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.Domain.Entities;
-using System.Text.Json;
 
-namespace PlotCAD.Infrastructure.Service
+namespace PlotCAD.Application.Services.Impl
 {
     public class AuditLogService : IAuditLogService
     {
         private readonly IAuditLogRepository _auditLogRepository;
         private readonly IBackofficeManagerRepository _managerRepository;
+        private readonly ILogger<AuditLogService> _logger;
 
-        public AuditLogService(IAuditLogRepository auditLogRepository, IBackofficeManagerRepository managerRepository)
+        public AuditLogService(
+            IAuditLogRepository auditLogRepository,
+            IBackofficeManagerRepository managerRepository,
+            ILogger<AuditLogService> logger)
         {
             _auditLogRepository = auditLogRepository;
             _managerRepository = managerRepository;
+            _logger = logger;
         }
 
         public async Task LogAsync(int? managerId, string action, string entityType, string entityId,
@@ -32,6 +37,9 @@ namespace PlotCAD.Infrastructure.Service
             };
 
             await _auditLogRepository.CreateAsync(log, ct);
+
+            _logger.LogInformation("Audit: {Action} on {EntityType}:{EntityId} by manager {ManagerId}",
+                action, entityType, entityId, managerId);
         }
 
         public async Task<PagedResponse<AuditLogResponse>> GetPagedAsync(AuditLogListRequest request, CancellationToken ct = default)

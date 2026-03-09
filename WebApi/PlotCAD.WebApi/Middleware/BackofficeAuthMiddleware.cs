@@ -26,7 +26,8 @@ namespace PlotCAD.WebApi.Middleware
                 return;
             }
 
-            if (context.Request.Path.StartsWithSegments("/api/backoffice/auth"))
+            if (context.Request.Path.StartsWithSegments("/api/backoffice/auth/login") ||
+                context.Request.Path.StartsWithSegments("/api/backoffice/auth/logout"))
             {
                 await _next(context);
                 return;
@@ -82,7 +83,7 @@ namespace PlotCAD.WebApi.Middleware
                     return;
                 }
 
-                currentBackofficeUser.SetManager(managerId, emailClaim, nameClaim ?? "");
+                currentBackofficeUser.SetManager(managerId, emailClaim, nameClaim ?? "", context.Connection.RemoteIpAddress?.ToString());
             }
             catch (SecurityTokenExpiredException)
             {

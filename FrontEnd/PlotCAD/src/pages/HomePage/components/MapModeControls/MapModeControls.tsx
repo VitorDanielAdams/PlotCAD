@@ -45,7 +45,7 @@ export default memo(function MapModeControls({
 	layersActiveCount,
 }: MapModeControlsProps) {
 	return (
-		<div className="flex flex-col gap-1.5">
+		<div className="flex flex-row gap-1.5">
 			<ModeButton
 				icon={<Layers className="w-4 h-4" />}
 				label="Camadas (CAR / SIGEF / SNCI)"

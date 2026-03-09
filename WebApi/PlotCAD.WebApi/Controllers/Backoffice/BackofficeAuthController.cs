@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using PlotCAD.Application.DTOs.Backoffice;
-using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.WebApi.Reponses;
 
@@ -13,45 +12,37 @@ namespace PlotCAD.WebApi.Controllers.Backoffice
     public class BackofficeAuthController : ControllerBase
     {
         private readonly IBackofficeAuthService _authService;
-        private readonly IBackofficeManagerRepository _managerRepository;
-        private readonly IAuditLogService _auditLogService;
+        private readonly ICurrentBackofficeUser _currentUser;
         private readonly ILogger<BackofficeAuthController> _logger;
         private readonly IConfiguration _configuration;
 
         public BackofficeAuthController(
             IBackofficeAuthService authService,
-            IBackofficeManagerRepository managerRepository,
-            IAuditLogService auditLogService,
+            ICurrentBackofficeUser currentUser,
             ILogger<BackofficeAuthController> logger,
             IConfiguration configuration)
         {
             _authService = authService;
-            _managerRepository = managerRepository;
-            _auditLogService = auditLogService;
+            _currentUser = currentUser;
             _logger = logger;
             _configuration = configuration;
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult<ApiResponse<BackofficeLoginResponse>>> Login(
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<ApiResponse<object>>> Login(
             [FromBody] BackofficeLoginRequest request, CancellationToken ct)
         {
             try
             {
-                var response = await _authService.AuthenticateAsync(request, ct);
-
-                var manager = await _managerRepository.GetByEmailAsync(request.Email, ct);
-                if (manager == null)
-                    return Unauthorized(ApiResponse<BackofficeLoginResponse>.Fail("Invalid credentials"));
-
-                var token = _authService.GenerateToken(manager.Id, manager.Email, manager.Name);
-                AddBackofficeCookie(token);
-
                 var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-                await _auditLogService.LogAsync(manager.Id, "manager.login", "BackofficeManager",
-                    manager.Id.ToString(), null, ipAddress, ct);
+                var response = await _authService.LoginAsync(request, ipAddress, ct);
 
-                return Ok(ApiResponse<BackofficeLoginResponse>.Ok(response));
+                AddBackofficeCookie(response.Token);
+
+                return Ok(ApiResponse<BackofficeLoginResponse>.Ok());
             }
             catch (UnauthorizedAccessException)
             {
@@ -61,11 +52,13 @@ namespace PlotCAD.WebApi.Controllers.Backoffice
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during backoffice authentication for: {Email}", request.Email);
-                return StatusCode(500, ApiResponse<BackofficeLoginResponse>.Fail("An error occurred during authentication"));
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    ApiResponse<BackofficeLoginResponse>.Fail("An error occurred during authentication"));
             }
         }
 
         [HttpPost("logout")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public IActionResult Logout()
         {
             var cookieName = _configuration["Backoffice:Jwt:CookieName"] ?? "BackofficeToken";
@@ -83,16 +76,18 @@ namespace PlotCAD.WebApi.Controllers.Backoffice
         }
 
         [HttpGet("me")]
-        public IActionResult Me([FromServices] ICurrentBackofficeUser currentUser)
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public IActionResult Me()
         {
-            if (!currentUser.IsAuthenticated)
+            if (!_currentUser.IsAuthenticated)
                 return Unauthorized(ApiResponse<object>.Fail("Not authenticated"));
 
             return Ok(ApiResponse<object>.Ok(new
             {
-                id = currentUser.ManagerId,
-                email = currentUser.Email,
-                name = currentUser.Name
+                id = _currentUser.ManagerId,
+                email = _currentUser.Email,
+                name = _currentUser.Name
             }));
         }
 

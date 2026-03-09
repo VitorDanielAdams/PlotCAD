@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using PlotCAD.Application.DTOs.Backoffice;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.WebApi.Reponses;
-using System.Text.Json;
 
 namespace PlotCAD.WebApi.Controllers.Backoffice
 {
@@ -13,56 +12,66 @@ namespace PlotCAD.WebApi.Controllers.Backoffice
     public class BackofficeModuleController : ControllerBase
     {
         private readonly IModuleService _moduleService;
-        private readonly IAuditLogService _auditLogService;
-        private readonly ICurrentBackofficeUser _currentUser;
         private readonly ILogger<BackofficeModuleController> _logger;
 
         public BackofficeModuleController(
             IModuleService moduleService,
-            IAuditLogService auditLogService,
-            ICurrentBackofficeUser currentUser,
             ILogger<BackofficeModuleController> logger)
         {
             _moduleService = moduleService;
-            _auditLogService = auditLogService;
-            _currentUser = currentUser;
             _logger = logger;
         }
 
         [HttpGet]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<ApiResponse<IEnumerable<ModuleResponse>>>> GetAll(CancellationToken ct)
         {
-            var modules = await _moduleService.GetAllAsync(ct);
-            return Ok(ApiResponse<IEnumerable<ModuleResponse>>.Ok(modules));
+            try
+            {
+                var modules = await _moduleService.GetAllAsync(ct);
+                return Ok(ApiResponse<IEnumerable<ModuleResponse>>.Ok(modules));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while listing modules.");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
         }
 
         [HttpGet("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<ApiResponse<ModuleResponse>>> GetById(int id, CancellationToken ct)
         {
-            var module = await _moduleService.GetByIdAsync(id, ct);
-            if (module == null)
-                return NotFound(ApiResponse<ModuleResponse>.Fail("Module not found"));
+            try
+            {
+                var module = await _moduleService.GetByIdAsync(id, ct);
+                if (module == null)
+                    return NotFound(ApiResponse<ModuleResponse>.Fail("Module not found"));
 
-            return Ok(ApiResponse<ModuleResponse>.Ok(module));
+                return Ok(ApiResponse<ModuleResponse>.Ok(module));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting module {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
         }
 
         [HttpPost]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<ApiResponse<ModuleResponse>>> Create(
             [FromBody] CreateModuleRequest request, CancellationToken ct)
         {
             try
             {
                 var module = await _moduleService.CreateAsync(request, ct);
-
-                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-                await _auditLogService.LogAsync(
-                    _currentUser.ManagerId,
-                    "module.created",
-                    "Module",
-                    module.Id.ToString(),
-                    JsonSerializer.Serialize(new { module.Code, module.Name }),
-                    ipAddress, ct);
-
                 return CreatedAtAction(nameof(GetById), new { id = module.Id },
                     ApiResponse<ModuleResponse>.Ok(module));
             }
@@ -70,92 +79,101 @@ namespace PlotCAD.WebApi.Controllers.Backoffice
             {
                 return Conflict(ApiResponse<ModuleResponse>.Fail(ex.Message));
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while creating module.");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
         }
 
         [HttpPut("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<ApiResponse<object>>> Update(
             int id, [FromBody] UpdateModuleRequest request, CancellationToken ct)
         {
             try
             {
                 await _moduleService.UpdateAsync(id, request, ct);
-
-                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-                await _auditLogService.LogAsync(
-                    _currentUser.ManagerId,
-                    "module.updated",
-                    "Module",
-                    id.ToString(),
-                    JsonSerializer.Serialize(new { request.Name }),
-                    ipAddress, ct);
-
                 return Ok(ApiResponse<object?>.Ok("Module updated"));
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(ApiResponse<object>.Fail(ex.Message));
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while updating module {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
         }
 
         [HttpPatch("{id:int}/toggle-active")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<ApiResponse<object>>> ToggleActive(int id, CancellationToken ct)
         {
             try
             {
-                var module = await _moduleService.GetByIdAsync(id, ct);
-                if (module == null)
-                    return NotFound(ApiResponse<object>.Fail("Module not found"));
-
-                var newStatus = !module.IsActive;
-                await _moduleService.ToggleActiveAsync(id, newStatus, ct);
-
-                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-                await _auditLogService.LogAsync(
-                    _currentUser.ManagerId,
-                    newStatus ? "module.activated" : "module.deactivated",
-                    "Module",
-                    id.ToString(),
-                    null,
-                    ipAddress, ct);
-
-                return Ok(ApiResponse<object?>.Ok(newStatus ? "Module activated" : "Module deactivated"));
+                await _moduleService.ToggleActiveAsync(id, true, ct);
+                return Ok(ApiResponse<object>.Ok());
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(ApiResponse<object>.Fail(ex.Message));
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while toggling active state for module {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
         }
 
         [HttpGet("tenant/{tenantId:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<ApiResponse<IEnumerable<TenantModuleResponse>>>> GetTenantModules(
             Guid tenantId, CancellationToken ct)
         {
-            var modules = await _moduleService.GetTenantModulesAsync(tenantId, ct);
-            return Ok(ApiResponse<IEnumerable<TenantModuleResponse>>.Ok(modules));
+            try
+            {
+                var modules = await _moduleService.GetTenantModulesAsync(tenantId, ct);
+                return Ok(ApiResponse<IEnumerable<TenantModuleResponse>>.Ok(modules));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting modules for tenant {TenantId}.", tenantId);
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
         }
 
         [HttpPost("tenant/{tenantId:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<ApiResponse<object>>> SetTenantModule(
             Guid tenantId, [FromBody] SetTenantModuleRequest request, CancellationToken ct)
         {
             try
             {
                 await _moduleService.SetTenantModuleAsync(tenantId, request, ct);
-
-                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-                await _auditLogService.LogAsync(
-                    _currentUser.ManagerId,
-                    request.IsEnabled ? "tenant_module.enabled" : "tenant_module.disabled",
-                    "TenantModule",
-                    $"{tenantId}:{request.ModuleId}",
-                    JsonSerializer.Serialize(new { TenantId = tenantId, request.ModuleId, request.IsEnabled }),
-                    ipAddress, ct);
-
                 return Ok(ApiResponse<object?>.Ok("Tenant module updated"));
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(ApiResponse<object>.Fail(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while setting module for tenant {TenantId}.", tenantId);
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail("An error occurred while processing your request."));
             }
         }
     }

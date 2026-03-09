@@ -4,7 +4,6 @@ namespace PlotCAD.Application.Services.Interfaces
 {
     public interface IBackofficeAuthService
     {
-        Task<BackofficeLoginResponse> AuthenticateAsync(BackofficeLoginRequest request, CancellationToken ct = default);
-        string GenerateToken(int managerId, string email, string name);
+        Task<BackofficeLoginResponse> LoginAsync(BackofficeLoginRequest request, string? ipAddress, CancellationToken ct = default);
     }
 }
