@@ -45,7 +45,7 @@ const Login = () => {
 
 	return (
 		<div className="flex items-center justify-center h-screen bg-neutral-100">
-			<div className="flex flex-col items-center w-[380px] bg-gray-50 shadow-[0_10px_20px_rgba(0,0,0,0.15)] rounded-2xl p-8 gap-6">
+			<div className="flex flex-col items-center w-full max-w-[380px] mx-4 bg-gray-50 shadow-[0_10px_20px_rgba(0,0,0,0.15)] rounded-2xl p-8 gap-6">
 				<div className="flex flex-col items-center">
 					<img src={logo} alt="PlotCAD Logo" className="w-32 h-auto mx-auto" />
 				</div>

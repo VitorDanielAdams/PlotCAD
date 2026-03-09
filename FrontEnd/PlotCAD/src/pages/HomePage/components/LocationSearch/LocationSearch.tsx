@@ -86,7 +86,7 @@ export default function LocationSearch() {
 	}, []);
 
 	return (
-		<div ref={containerRef} className="w-72">
+		<div ref={containerRef} className="w-48 sm:w-72">
 			<div className="relative">
 				<Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
 				<input

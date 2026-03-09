@@ -19,7 +19,7 @@ const SideBarItem = (props: ISiderBarItemProps) => {
 					{props.icon}
 				</span>
 			)}
-			<span className="font-medium text-sm hidden lg:block">{props.text}</span>
+			<span className="font-medium text-sm">{props.text}</span>
 		</div>
 	);
 };

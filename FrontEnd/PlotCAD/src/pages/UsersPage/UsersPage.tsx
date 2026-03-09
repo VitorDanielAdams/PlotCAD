@@ -234,11 +234,11 @@ const UsersPage = () => {
 	return (
 		<div className="min-h-screen bg-white">
 			<div className="bg-[#15803d] text-white">
-				<div className="max-w-7xl mx-auto px-6 py-4">
-					<div className="flex items-center justify-between gap-6">
+				<div className="max-w-7xl mx-auto px-4 md:px-6 py-4">
+					<div className="flex items-center justify-between gap-3 md:gap-6 flex-wrap">
 						<h1 className="text-xl font-semibold whitespace-nowrap">Usuários</h1>
 
-						<div className="relative flex-1 max-w-md">
+						<div className="relative flex-1 max-w-full sm:max-w-md w-full sm:w-auto order-3 sm:order-none">
 							<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/70" />
 							<input
 								type="text"
@@ -261,7 +261,7 @@ const UsersPage = () => {
 			</div>
 
 			{planInfo && (
-				<div className="max-w-7xl mx-auto px-6 pt-4">
+				<div className="max-w-7xl mx-auto px-4 md:px-6 pt-4">
 					<div
 						className={`text-sm px-4 py-2 rounded-md border ${
 							planInfo.canAddUsers
@@ -275,7 +275,7 @@ const UsersPage = () => {
 				</div>
 			)}
 
-			<div className="max-w-7xl mx-auto px-6 py-6">
+			<div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-6">
 				<List
 					columns={columns}
 					items={users}

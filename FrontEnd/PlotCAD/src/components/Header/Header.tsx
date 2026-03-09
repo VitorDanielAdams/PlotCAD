@@ -7,7 +7,7 @@ const Header: React.FC<IHeaderProps> = (props: IHeaderProps) => {
 	const { onToggleSidebar, isSideBarOpen } = props;
 
 	return (
-		<header className="fixed top-0 left-0 w-full bg-white shadow-sm z-[50] flex items-center justify-between px-6 py-3">
+		<header className="fixed top-0 left-0 w-full bg-white shadow-sm z-[50] flex items-center justify-between px-4 md:px-6 py-3">
 			<div className="flex items-center gap-2">
 				<img src={logo} alt="Logo" className="h-8" />
 				<h1 className="text-lg font-semibold text-gray-700">PLOTCAD</h1>

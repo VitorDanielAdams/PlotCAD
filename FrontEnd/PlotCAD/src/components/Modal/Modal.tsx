@@ -41,7 +41,7 @@ const Modal = ({
 					<div>
 						<h2 className="text-sm font-semibold text-gray-900">{title}</h2>
 						{subtitle && (
-							<p className="text-xs text-gray-400 mt-0.5 truncate max-w-[320px]">
+							<p className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px] sm:max-w-[320px]">
 								{subtitle}
 							</p>
 						)}

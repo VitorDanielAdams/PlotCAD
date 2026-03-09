@@ -13,6 +13,9 @@ const EmployeesPage = () => {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [debouncedSearch, setDebouncedSearch] = useState("");
 	const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+	const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(
+		null,
+	);
 	const [loading, setLoading] = useState(false);
 	const [employees, setEmployees] = useState<IEmployee[]>([]);
 	const [page, setPage] = useState(1);
@@ -63,18 +66,21 @@ const EmployeesPage = () => {
 
 	const handleDelete = async (employee: IEmployee) => {
 		setOpenMenuId(null);
+		setMenuPosition(null);
 		await deleteEmployee(employee.id);
 		fetchEmployees(page, pageSize, debouncedSearch);
 	};
 
 	const handleToggleActive = async (employee: IEmployee) => {
 		setOpenMenuId(null);
+		setMenuPosition(null);
 		await toggleEmployee(employee.id);
 		fetchEmployees(page, pageSize, debouncedSearch);
 	};
 
 	const handleDuplicate = async (employee: IEmployee) => {
 		setOpenMenuId(null);
+		setMenuPosition(null);
 		await duplicateEmployee(employee.id);
 		fetchEmployees(page, pageSize, debouncedSearch);
 	};
@@ -141,23 +147,43 @@ const EmployeesPage = () => {
 			maxSize: 80,
 			align: "center",
 			onRender: (item: IEmployee) => (
-				<div className="relative">
+				<div>
 					<button
 						onClick={(e) => {
 							e.stopPropagation();
-							setOpenMenuId(openMenuId === item.id ? null : item.id);
+							if (openMenuId === item.id) {
+								setOpenMenuId(null);
+								setMenuPosition(null);
+							} else {
+								const rect = e.currentTarget.getBoundingClientRect();
+								setMenuPosition({
+									top: rect.bottom + 4,
+									right: window.innerWidth - rect.right,
+								});
+								setOpenMenuId(item.id);
+							}
 						}}
 						className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
 					>
 						<MoreVertical className="h-4 w-4" />
 					</button>
-					{openMenuId === item.id && (
+					{openMenuId === item.id && menuPosition && (
 						<>
-							<div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-							<div className="absolute right-0 mt-1 w-44 bg-white border border-gray-200 rounded-md shadow-lg z-20">
+							<div
+								className="fixed inset-0 z-40"
+								onClick={() => {
+									setOpenMenuId(null);
+									setMenuPosition(null);
+								}}
+							/>
+							<div
+								className="fixed w-44 bg-white border border-gray-200 rounded-md shadow-lg z-50"
+								style={{ top: menuPosition.top, right: menuPosition.right }}
+							>
 								<button
 									onClick={() => {
 										setOpenMenuId(null);
+										setMenuPosition(null);
 										setModal({ mode: "edit", employee: item });
 									}}
 									className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors"
@@ -193,11 +219,11 @@ const EmployeesPage = () => {
 	return (
 		<div className="min-h-screen bg-white">
 			<div className="bg-[#15803d] text-white">
-				<div className="max-w-7xl mx-auto px-6 py-4">
-					<div className="flex items-center justify-between gap-6">
+				<div className="max-w-7xl mx-auto px-4 md:px-6 py-4">
+					<div className="flex items-center justify-between gap-3 md:gap-6 flex-wrap">
 						<h1 className="text-xl font-semibold whitespace-nowrap">Funcionários</h1>
 
-						<div className="relative flex-1 max-w-md">
+						<div className="relative flex-1 max-w-full sm:max-w-md w-full sm:w-auto order-3 sm:order-none">
 							<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/70" />
 							<input
 								type="text"
@@ -218,7 +244,7 @@ const EmployeesPage = () => {
 				</div>
 			</div>
 
-			<div className="max-w-7xl mx-auto px-6 py-6">
+			<div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-6">
 				<List
 					columns={columns}
 					items={employees}

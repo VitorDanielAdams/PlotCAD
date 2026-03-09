@@ -137,7 +137,7 @@ export default memo(function MapLayerControl({
 	if (!showPanel) return null;
 
 	return (
-		<div ref={containerRef} className="bg-white rounded-lg shadow-lg border border-gray-200 w-60 overflow-hidden">
+		<div ref={containerRef} className="bg-white rounded-lg shadow-lg border border-gray-200 w-52 sm:w-60 overflow-hidden">
 			<div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 border-b border-gray-200">
 				<div className="flex items-center gap-2">
 					<span className="text-xs font-semibold text-gray-700">Camadas</span>

@@ -531,6 +531,87 @@ export function useLandDraw() {
 		return () => canvas.removeEventListener("wheel", handleWheel);
 	}, [scheduleRedraw, canvasReady]);
 
+	// Touch support: single-finger pan, two-finger pinch-to-zoom
+	useEffect(() => {
+		const canvas = canvasRef.current;
+		if (!canvas) return;
+
+		let lastPinchDist: number | null = null;
+
+		const getTouchDist = (t: TouchList) =>
+			Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+
+		const getTouchMid = (t: TouchList) => ({
+			x: (t[0].clientX + t[1].clientX) / 2,
+			y: (t[0].clientY + t[1].clientY) / 2,
+		});
+
+		const handleTouchStart = (e: TouchEvent) => {
+			e.preventDefault();
+			if (e.touches.length === 1) {
+				isDraggingRef.current = true;
+				dragStartRef.current = {
+					mouseX: e.touches[0].clientX,
+					mouseY: e.touches[0].clientY,
+					panX: panRef.current.x,
+					panY: panRef.current.y,
+				};
+			} else if (e.touches.length === 2) {
+				isDraggingRef.current = false;
+				lastPinchDist = getTouchDist(e.touches);
+			}
+		};
+
+		const handleTouchMove = (e: TouchEvent) => {
+			e.preventDefault();
+			if (e.touches.length === 1 && isDraggingRef.current) {
+				panRef.current = {
+					x:
+						dragStartRef.current.panX +
+						(e.touches[0].clientX - dragStartRef.current.mouseX),
+					y:
+						dragStartRef.current.panY +
+						(e.touches[0].clientY - dragStartRef.current.mouseY),
+				};
+				scheduleRedraw();
+			} else if (e.touches.length === 2 && lastPinchDist !== null) {
+				const newDist = getTouchDist(e.touches);
+				const rect = canvas.getBoundingClientRect();
+				const mid = getTouchMid(e.touches);
+				const midX = mid.x - rect.left;
+				const midY = mid.y - rect.top;
+				const worldX = (midX - panRef.current.x) / zoomRef.current;
+				const worldY = (midY - panRef.current.y) / zoomRef.current;
+				const factor = newDist / lastPinchDist;
+				const newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomRef.current * factor));
+				panRef.current = {
+					x: midX - worldX * newZoom,
+					y: midY - worldY * newZoom,
+				};
+				zoomRef.current = newZoom;
+				setZoomDisplay(parseFloat(newZoom.toPrecision(3)));
+				lastPinchDist = newDist;
+				scheduleRedraw();
+			}
+		};
+
+		const handleTouchEnd = (e: TouchEvent) => {
+			if (e.touches.length < 2) lastPinchDist = null;
+			if (e.touches.length === 0) isDraggingRef.current = false;
+		};
+
+		canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
+		canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+		canvas.addEventListener("touchend", handleTouchEnd);
+		canvas.addEventListener("touchcancel", handleTouchEnd);
+		return () => {
+			canvas.removeEventListener("touchstart", handleTouchStart);
+			canvas.removeEventListener("touchmove", handleTouchMove);
+			canvas.removeEventListener("touchend", handleTouchEnd);
+			canvas.removeEventListener("touchcancel", handleTouchEnd);
+		};
+	}, [scheduleRedraw, canvasReady]);
+
 	const addSegment = useCallback(() => {
 		if (segments.length >= MAX_SEGMENTS) return;
 		const segment = createEmptySegment();

@@ -1,4 +1,4 @@
-import { Eye, EyeOff, Maximize2, Scan } from "lucide-react";
+import { Eye, EyeOff, Maximize2, Minimize2, Scan } from "lucide-react";
 import type { Dispatch, MouseEvent, Ref, SetStateAction } from "react";
 import type { ISegment } from "../LandDraw.types";
 
@@ -73,10 +73,14 @@ const CanvasOverlay = ({
 			</button>
 			<button
 				onClick={() => setFullscreen((f) => !f)}
-				title="Tela cheia"
-				className="p-1.5 text-white/50 hover:text-white bg-black/30 hover:bg-black/50 rounded transition-colors"
+				title={fullscreen ? "Sair da tela cheia" : "Tela cheia"}
+				className="hidden md:block p-1.5 text-white/50 hover:text-white bg-black/30 hover:bg-black/50 rounded transition-colors"
 			>
-				<Maximize2 className="h-4 w-4" />
+				{fullscreen ? (
+					<Minimize2 className="h-4 w-4" />
+				) : (
+					<Maximize2 className="h-4 w-4" />
+				)}
 			</button>
 		</div>
 

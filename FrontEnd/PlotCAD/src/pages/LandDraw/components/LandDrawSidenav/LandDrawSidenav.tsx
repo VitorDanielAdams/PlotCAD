@@ -60,7 +60,7 @@ const LandDrawSidenav = ({
 	const readOnly = mode === "view";
 
 	return (
-		<div className="w-[340px] min-w-[300px] bg-white border-l border-gray-200 flex flex-col overflow-hidden shadow-xl">
+		<div className="w-full md:w-[340px] md:min-w-[300px] flex-1 min-h-0 md:flex-none bg-white border-l border-gray-200 flex flex-col overflow-hidden shadow-xl">
 			<div className="bg-[#15803d] text-white px-4 py-3 flex items-center justify-between">
 				<div>
 					<h2 className="text-sm font-semibold">{TITLE[mode]}</h2>

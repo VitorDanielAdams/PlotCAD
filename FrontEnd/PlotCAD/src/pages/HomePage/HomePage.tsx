@@ -183,7 +183,7 @@ function MapContent() {
 			)}
 
 			{/* Controls: top right */}
-			<div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2 items-end">
+			<div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-[1000] flex flex-col gap-2 items-end">
 				<LocationSearch />
 
 				{/* Mode buttons row */}

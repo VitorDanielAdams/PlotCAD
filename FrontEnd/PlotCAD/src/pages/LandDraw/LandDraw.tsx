@@ -134,19 +134,21 @@ const LandDraw = ({ mode }: Props) => {
 	}
 
 	return (
-		<div className="flex h-[calc(100vh-64px)] bg-gray-50 overflow-hidden">
-			<CanvasOverlay
-				canvasRef={canvasRef}
-				canvasHandlers={canvasHandlers}
-				isClosed={isClosed}
-				segments={segments}
-				zoomDisplay={zoomDisplay}
-				showLabels={showLabels}
-				toggleShowLabels={toggleShowLabels}
-				fitToView={fitToView}
-				fullscreen={fullscreen}
-				setFullscreen={setFullscreen}
-			/>
+		<div className="flex flex-col md:flex-row h-[calc(100vh-64px)] bg-gray-50 overflow-hidden">
+			<div className="flex-1 min-h-0 flex flex-col">
+				<CanvasOverlay
+					canvasRef={canvasRef}
+					canvasHandlers={canvasHandlers}
+					isClosed={isClosed}
+					segments={segments}
+					zoomDisplay={zoomDisplay}
+					showLabels={showLabels}
+					toggleShowLabels={toggleShowLabels}
+					fitToView={fitToView}
+					fullscreen={fullscreen}
+					setFullscreen={setFullscreen}
+				/>
+			</div>
 			{!fullscreen && (
 				<LandDrawSidenav
 					mode={mode}

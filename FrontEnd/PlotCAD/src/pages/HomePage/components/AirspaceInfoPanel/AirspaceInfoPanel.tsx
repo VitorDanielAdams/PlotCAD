@@ -90,7 +90,12 @@ export default function AirspaceInfoPanel({ feature, onClose }: AirspaceInfoPane
 	return (
 		<div
 			ref={panelRef}
-			style={{ ...style, width: PANEL_WIDTH, transition: "opacity 0.15s ease" }}
+			style={{
+				...style,
+				width: PANEL_WIDTH,
+				maxWidth: "calc(100vw - 20px)",
+				transition: "opacity 0.15s ease",
+			}}
 			className="absolute z-[1001] bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
 		>
 			{/* Header */}
