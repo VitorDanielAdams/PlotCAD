@@ -17,7 +17,6 @@ namespace PlotCAD.Application.Services.Interfaces
         Task DeleteAsync(int id, CancellationToken cancellationToken = default);
         Task<bool> EmailExistsAsync(string email, int? excludeUserId = null, CancellationToken cancellationToken = default);
 
-        // User management operations
         Task<ListResponse<UserResponse>> ListAsync(ListRequest<UserListFilter> args, CancellationToken cancellationToken = default);
         Task<UserResponse> CreateAsync(CreateUserRequest request, CancellationToken cancellationToken = default);
         Task<UserResponse> UpdateAsync(int id, UpdateUserRequest request, CancellationToken cancellationToken = default);

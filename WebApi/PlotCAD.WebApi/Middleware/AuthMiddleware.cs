@@ -23,7 +23,9 @@ namespace PlotCAD.WebApi.Middleware
         public async Task InvokeAsync(HttpContext context, ICurrentUserService currentUserService, ITenantService tenantService, IUserRepository userRepository)
         {
             if (context.Request.Path.StartsWithSegments("/api/internal") ||
-                context.Request.Path.StartsWithSegments("/api/auth"))
+                context.Request.Path.StartsWithSegments("/api/auth") ||
+                context.Request.Path.StartsWithSegments("/api/backoffice") ||
+                context.Request.Path.StartsWithSegments("/api/public"))
             {
                 await _next(context);
                 return;

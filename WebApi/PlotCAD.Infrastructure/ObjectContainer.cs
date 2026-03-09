@@ -22,6 +22,11 @@ namespace PlotCAD.Infrastructure
             container.AddScoped<ILandRepository, LandRepository>();
             container.AddScoped<ITenantRepository, TenantRepository>();
             container.AddScoped<IEmployeeRepository, EmployeeRepository>();
+            container.AddScoped<IBackofficeManagerRepository, BackofficeManagerRepository>();
+            container.AddScoped<IBackofficeTenantRepository, BackofficeTenantRepository>();
+            container.AddScoped<IBackofficeUserRepository, BackofficeUserRepository>();
+            container.AddScoped<IModuleRepository, ModuleRepository>();
+            container.AddScoped<IAuditLogRepository, AuditLogRepository>();
             #endregion
 
             #region Services
@@ -33,6 +38,13 @@ namespace PlotCAD.Infrastructure
             container.AddScoped<ILandService, LandService>();
             container.AddScoped<ITenantService, TenantService>();
             container.AddScoped<IEmployeeService, EmployeeService>();
+            container.AddScoped<ICurrentBackofficeUser, CurrentBackofficeUser>();
+            container.AddScoped<IBackofficeAuthService, BackofficeAuthService>();
+            container.AddScoped<IBackofficeTenantService, BackofficeTenantService>();
+            container.AddScoped<IBackofficeUserService, BackofficeUserService>();
+            container.AddScoped<IBackofficeDashboardService, BackofficeDashboardService>();
+            container.AddScoped<IModuleService, ModuleService>();
+            container.AddScoped<IAuditLogService, AuditLogService>();
             #endregion
 
             return container;

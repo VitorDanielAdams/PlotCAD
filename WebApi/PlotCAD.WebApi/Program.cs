@@ -52,9 +52,22 @@ builder.Services.Configure<IpRateLimitOptions>(options =>
         },
         new RateLimitRule
         {
+            Endpoint = "POST:/api/backoffice/auth/login",
+            Period = "1m",
+            Limit = 3,
+            PeriodTimespan = TimeSpan.FromMinutes(1)
+        },
+        new RateLimitRule
+        {
+            Endpoint = "/api/backoffice/*",
+            Period = "1m",
+            Limit = 120
+        },
+        new RateLimitRule
+        {
             Endpoint = "*",
             Period = "1m",
-            Limit = 60 
+            Limit = 60
         }
     };
 });
@@ -126,13 +139,48 @@ builder.Services.AddSwaggerGen(c =>
 #endregion
 
 #region Cors
-var allowedOrigins = builder.Configuration.GetSection("Frontend:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+var mainAppOrigins = builder.Configuration.GetSection("Frontend:MainAppOrigins").Get<string[]>() ?? Array.Empty<string>();
+var backofficeOrigins = builder.Configuration.GetSection("Frontend:BackofficeOrigins").Get<string[]>() ?? Array.Empty<string>();
+var landingOrigins = builder.Configuration.GetSection("Frontend:LandingOrigins").Get<string[]>() ?? Array.Empty<string>();
+
 builder.Services.AddCors(options =>
 {
+    // Main app (existing tenant frontend)
+    options.AddPolicy("MainApp", policy =>
+    {
+        policy
+            .WithOrigins(mainAppOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+
+    // Backoffice admin panel
+    options.AddPolicy("Backoffice", policy =>
+    {
+        policy
+            .WithOrigins(backofficeOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+
+    // Landing page
+    options.AddPolicy("Landing", policy =>
+    {
+        policy
+            .WithOrigins(landingOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+
+    // Legacy fallback used by existing controllers until they are migrated
+    var allOrigins = mainAppOrigins.Concat(backofficeOrigins).Concat(landingOrigins).Distinct().ToArray();
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy
-            .WithOrigins(allowedOrigins)
+            .WithOrigins(allOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -191,9 +239,12 @@ app.UseIpRateLimiting();
 
 app.UseCors("AllowFrontend");
 
+app.UseMiddleware<OriginValidationMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseMiddleware<BackofficeAuthMiddleware>();
 app.UseMiddleware<AuthMiddleware>();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<LoggingMiddleware>();
