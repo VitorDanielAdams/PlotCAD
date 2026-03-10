@@ -1,0 +1,165 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# PlotCAD — Docker Compose Production
+#
+# Architecture: Blue-green deployment via Nginx upstream swap
+# - Two API slots (blue/green) on ports 5000/5001
+# - Only one active at a time, Nginx routes to the active slot
+# - Deploy script swaps traffic after health check passes
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yaml --env-file .env.prod up -d
+# ══════════════════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── API Blue (default active slot) ───────────────────────────────────────
+  plotcad-api-blue:
+    image: ghcr.io/${GHCR_OWNER}/plotcad-api:${IMAGE_TAG:-latest}
+    container_name: plotcad-api-blue
+    restart: unless-stopped
+    environment: &api-env
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: >-
+        Host=postgres;Port=5432;Database=PlotCAD;
+        Username=plotcad;Password=${POSTGRES_PASSWORD};
+        Pooling=true;MinPoolSize=2;MaxPoolSize=25;Timeout=30;
+        Keepalive=60;
+      Redis__ConnectionString: "redis:6379,abortConnect=false,connectTimeout=5000"
+      Jwt__Secret: ${JWT_SECRET}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      BackofficeJwt__Secret: ${BACKOFFICE_JWT_SECRET}
+      Cors__AllowedOrigins__0: ${CORS_APP_ORIGIN}
+      Cors__AllowedOrigins__1: ${CORS_ADMIN_ORIGIN}
+    volumes: &api-volumes
+      - ./secrets/private.pem:/app/secrets/private.pem:ro
+      - ./secrets/public.pem:/app/secrets/public.pem:ro
+      - api_logs:/app/logs
+    networks:
+      - plotcad_internal
+    ports:
+      - "127.0.0.1:5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+    logging: &api-logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── API Green (standby slot for blue-green deploy) ───────────────────────
+  plotcad-api-green:
+    image: ghcr.io/${GHCR_OWNER}/plotcad-api:${IMAGE_TAG:-latest}
+    container_name: plotcad-api-green
+    restart: unless-stopped
+    profiles:
+      - green
+    environment: *api-env
+    volumes: *api-volumes
+    networks:
+      - plotcad_internal
+    ports:
+      - "127.0.0.1:5001:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+    logging: *api-logging
+
+  # ── PostgreSQL + PostGIS ─────────────────────────────────────────────────
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: plotcad-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: plotcad
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: PlotCAD
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./backups:/backups
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    networks:
+      - plotcad_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U plotcad -d PlotCAD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Redis ────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: plotcad-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --appendonly no
+      --tcp-backlog 511
+      --timeout 300
+      --tcp-keepalive 60
+      --protected-mode yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - plotcad_internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 64M
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+networks:
+  plotcad_internal:
+    driver: bridge
+
+volumes:
+  pg_data:
+  redis_data:
+  api_logs:

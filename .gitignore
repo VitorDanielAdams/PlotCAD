@@ -1,18 +1,28 @@
+# ── Environment & Secrets ────────────────────────────────────────────────────
 .env
-
-# Secrets
+.env.prod
+.env.local
 appsettings.Production.json
+appsettings.Development.json
 *.secrets.json
 secrets.json
+secrets/
+*.pem
 
-# Build results
+# ── Build Results ────────────────────────────────────────────────────────────
 [Bb]in/
 [Oo]bj/
 *.exe
 *.dll
 *.pdb
 
-# User-specific files
+# ── .NET ─────────────────────────────────────────────────────────────────────
+.dotnet/
+.nuget/
+*.nupkg
+WebApi/PlotCAD.WebApi/logs/
+
+# ── Visual Studio ────────────────────────────────────────────────────────────
 *.rsuser
 *.user
 *.suo
@@ -20,16 +30,21 @@ secrets.json
 *.sln.docstates
 .vs/
 
-# DotNet runtime artifacts
-.dotnet/
-.nuget/
-*.nupkg
-WebApi/PlotCAD.WebApi/logs/
+# ── Node.js ──────────────────────────────────────────────────────────────────
+node_modules/
+FrontEnd/PlotCAD/dist/
+FrontEnd/PlotCAD.Admin/dist/
+
+# ── Data files ───────────────────────────────────────────────────────────────
+*.pmtiles
+FrontEnd/PlotCAD/public/tiles/README.md
+
+# ── Backups ──────────────────────────────────────────────────────────────────
+backups/
+*.sql.gz
+
+# ── Misc ─────────────────────────────────────────────────────────────────────
 tmpclaude*
 nul
 docs/
-*.pem
-WebApi/PlotCAD.WebApi/appsettings.Development.json
-*.pmtiles
 scripts/
-FrontEnd/PlotCAD/public/tiles/README.md

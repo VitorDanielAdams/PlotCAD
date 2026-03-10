@@ -1,0 +1,45 @@
+# ── Docker build context exclusions ──────────────────────────────────────────
+# Keep build context small and fast
+
+# Frontend (not needed for API image)
+FrontEnd/
+nginx/
+scripts/
+postgres/
+docs/
+.github/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Secrets
+.env*
+secrets/
+*.pem
+
+# Data
+*.pmtiles
+*.shp
+*.dbf
+*.shx
+backups/
+
+# Build artifacts
+**/node_modules/
+**/dist/
+**/bin/
+**/obj/
+
+# Misc
+Makefile
+docker-compose*.yaml
+README.md
+LICENSE
+tmpclaude*
