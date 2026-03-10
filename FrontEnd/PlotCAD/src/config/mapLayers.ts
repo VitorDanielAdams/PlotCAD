@@ -78,8 +78,14 @@ export const MAP_LAYERS: MapLayerConfig[] = [
 			strokeColor: "#1a6b8a",
 			strokeWidth: 1,
 		},
-		clickable: false,
-		fields: [],
+		clickable: true,
+		fields: [
+			{ key: "cod_imovel", label: "Nº SICAR", format: "text" },
+			{ key: "num_area", label: "Área (ha)", format: "area" },
+			{ key: "municipio", label: "Município", format: "text" },
+			{ key: "cod_estado", label: "UF", format: "text" },
+			{ key: "des_tp_app", label: "Tipo de APP", format: "text" },
+		],
 	},
 
 	// ── SIGEF ────────────────────────────────────────────
