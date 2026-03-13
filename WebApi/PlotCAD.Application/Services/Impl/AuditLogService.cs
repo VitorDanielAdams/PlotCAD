@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
-using PlotCAD.Application.DTOs.Backoffice;
+using PlotCAD.Application.DTOs.Backoffice.AuditLog;
+using PlotCAD.Application.DTOs.Common;
 using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.Domain.Entities;
@@ -9,16 +10,13 @@ namespace PlotCAD.Application.Services.Impl
     public class AuditLogService : IAuditLogService
     {
         private readonly IAuditLogRepository _auditLogRepository;
-        private readonly IBackofficeManagerRepository _managerRepository;
         private readonly ILogger<AuditLogService> _logger;
 
         public AuditLogService(
             IAuditLogRepository auditLogRepository,
-            IBackofficeManagerRepository managerRepository,
             ILogger<AuditLogService> logger)
         {
             _auditLogRepository = auditLogRepository;
-            _managerRepository = managerRepository;
             _logger = logger;
         }
 
@@ -42,7 +40,7 @@ namespace PlotCAD.Application.Services.Impl
                 action, entityType, entityId, managerId);
         }
 
-        public async Task<PagedResponse<AuditLogResponse>> GetPagedAsync(AuditLogListRequest request, CancellationToken ct = default)
+        public async Task<ListResponse<AuditLogResponse>> GetPagedAsync(AuditLogListRequest request, CancellationToken ct = default)
         {
             var filter = new AuditLogFilter
             {
@@ -53,22 +51,13 @@ namespace PlotCAD.Application.Services.Impl
                 ToDate = request.ToDate
             };
 
-            var logs = await _auditLogRepository.GetPagedAsync(request.Page, request.PageSize, filter, ct);
-            var count = await _auditLogRepository.GetCountAsync(filter, ct);
+            var logsTask = await _auditLogRepository.GetPagedAsync(request.PageNumber, request.PageSize, filter, ct);
+            var countTask = await  _auditLogRepository.GetCountAsync(filter, ct);
 
-            var managerIds = logs.Where(l => l.ManagerId.HasValue).Select(l => l.ManagerId!.Value).Distinct();
-            var managerNames = new Dictionary<int, string>();
-            foreach (var id in managerIds)
-            {
-                var manager = await _managerRepository.GetByIdAsync(id, ct);
-                if (manager != null)
-                    managerNames[id] = manager.Name;
-            }
-
-            var items = logs.Select(l => new AuditLogResponse(
+            var items = logsTask.Select(l => new AuditLogResponse(
                 l.Id,
                 l.ManagerId,
-                l.ManagerId.HasValue && managerNames.TryGetValue(l.ManagerId.Value, out var name) ? name : null,
+                l.ManagerName,
                 l.Action,
                 l.EntityType,
                 l.EntityId,
@@ -76,7 +65,7 @@ namespace PlotCAD.Application.Services.Impl
                 l.IpAddress,
                 l.CreatedAt));
 
-            return new PagedResponse<AuditLogResponse>(items, count, request.Page, request.PageSize);
+            return new ListResponse<AuditLogResponse>(countTask, request.PageNumber, request.PageSize, items);
         }
     }
 }

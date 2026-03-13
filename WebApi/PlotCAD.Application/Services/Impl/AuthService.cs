@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using BCrypt.Net;
-using PlotCAD.Application.DTOs.Auth;
-using PlotCAD.Application.DTOs.User;
+using PlotCAD.Application.DTOs.PlotCad.Auth;
+using PlotCAD.Application.DTOs.PlotCad.User;
 using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Interfaces;
 

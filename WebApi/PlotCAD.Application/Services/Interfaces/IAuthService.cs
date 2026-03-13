@@ -1,4 +1,4 @@
-﻿using PlotCAD.Application.DTOs.Auth;
+﻿using PlotCAD.Application.DTOs.PlotCad.Auth;
 
 namespace PlotCAD.Application.Services.Interfaces
 {

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
-using PlotCAD.Application.DTOs.Backoffice;
+using PlotCAD.Application.DTOs.Backoffice.User;
+using PlotCAD.Application.DTOs.Common;
 using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.Domain.Enums;
@@ -26,12 +27,12 @@ namespace PlotCAD.Application.Services.Impl
             _logger = logger;
         }
 
-        public async Task<PagedResponse<BackofficeUserResponse>> GetPagedAsync(BackofficeUserListRequest request, CancellationToken ct = default)
+        public async Task<ListResponse<BackofficeUserResponse>> GetPagedAsync(BackofficeUserListRequest request, CancellationToken ct = default)
         {
-            _logger.LogInformation("Listing users: Page={Page}, PageSize={PageSize}", request.Page, request.PageSize);
+            _logger.LogInformation("Listing users: Page={Page}, PageSize={PageSize}", request.PageNumber, request.PageSize);
 
             var users = await _userRepository.GetPagedAsync(
-                request.Page, request.PageSize, request.Search, request.TenantId, request.Role, request.IsActive, ct);
+                request.PageNumber, request.PageSize, request.Search, request.TenantId, request.Role, request.IsActive, ct);
             var count = await _userRepository.GetCountAsync(
                 request.Search, request.TenantId, request.Role, request.IsActive, ct);
 
@@ -46,7 +47,7 @@ namespace PlotCAD.Application.Services.Impl
                 u.CreatedAt,
                 u.UpdatedAt));
 
-            return new PagedResponse<BackofficeUserResponse>(items, count, request.Page, request.PageSize);
+            return new ListResponse<BackofficeUserResponse>(count, request.PageNumber, request.PageSize, items);
         }
 
         public async Task<BackofficeUserResponse?> GetByIdAsync(int id, CancellationToken ct = default)

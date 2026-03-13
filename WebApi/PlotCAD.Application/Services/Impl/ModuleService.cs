@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using PlotCAD.Application.DTOs.Backoffice;
+using PlotCAD.Application.DTOs.Backoffice.Module;
 using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.Domain.Entities;

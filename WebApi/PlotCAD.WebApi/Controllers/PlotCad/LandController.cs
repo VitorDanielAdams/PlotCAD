@@ -1,0 +1,163 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using PlotCAD.Application.DTOs.Common;
+using PlotCAD.Application.DTOs.PlotCad.Land;
+using PlotCAD.Application.DTOs.PlotCad.Land.List;
+using PlotCAD.Application.Services.Interfaces;
+using PlotCAD.WebApi.Reponses;
+
+namespace PlotCAD.WebApi.Controllers.PlotCad
+{
+    [ApiController]
+    [Route("api/lands")]
+    public class LandController : ControllerBase
+    {
+        private readonly ILogger<LandController> _logger;
+        private readonly ILandService _landService;
+
+        public LandController(ILogger<LandController> logger, ILandService landService)
+        {
+            _logger = logger;
+            _landService = landService;
+        }
+
+        [HttpPost("save")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<ApiResponse<object>>> Save([FromBody] LandSaveRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await _landService.CreateAsync(request, cancellationToken);
+                return Ok(new ApiResponse<object>());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while saving land.");
+                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
+        }
+
+        [HttpPost("list")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<ApiResponse<ListResponse<LandListItemResponse>>>> List([FromBody] ListRequest<LandListFilter> request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await _landService.ListAsync(request, cancellationToken);
+                return Ok(ApiResponse<ListResponse<LandListItemResponse>>.Ok(result));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while saving land.");
+                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail("An error occurred while processing your request."));
+            } 
+        }
+
+        [HttpGet("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<ApiResponse<LandResponse>>> Get(int id, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await _landService.GetByIdAsync(id, cancellationToken);
+                if (result == null)
+                    return NotFound(ApiResponse<object>.Fail("Land not found."));
+
+                return Ok(ApiResponse<LandResponse>.Ok(result));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting land {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
+        }
+
+        [HttpPut("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult> Update(int id, [FromBody] LandSaveRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _landService.UpdateAsync(id, request, cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(ApiResponse<object>.Fail("Land not found."));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while updating land {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
+        }
+
+        [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult> Delete(int id, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _landService.DeleteAsync(id, cancellationToken);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting land {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
+        }
+
+        [HttpPatch("{id}/toggle-active")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<ApiResponse<object>>> ToggleActive(int id, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _landService.ToggleActiveAsync(id, cancellationToken);
+                return Ok(ApiResponse<object>.Ok());
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while toggling active state for land {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
+        }
+
+        [HttpPost("{id}/duplicate")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<ApiResponse<LandResponse>>> Duplicate(int id, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await _landService.DuplicateAsync(id, cancellationToken);
+                return Ok(ApiResponse<LandResponse>.Ok(result));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while duplicating land {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail("An error occurred while processing your request."));
+            }
+        }
+    }
+}

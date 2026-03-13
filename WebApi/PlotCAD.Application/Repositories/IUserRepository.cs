@@ -1,4 +1,4 @@
-﻿using PlotCAD.Application.DTOs.User;
+﻿using PlotCAD.Application.DTOs.PlotCad.User;
 using PlotCAD.Application.Repositories.Common;
 using PlotCAD.Domain.Entities;
 using PlotCAD.Domain.Enums;

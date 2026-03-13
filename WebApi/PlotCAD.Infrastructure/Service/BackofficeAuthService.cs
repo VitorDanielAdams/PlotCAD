@@ -2,7 +2,7 @@ using BCrypt.Net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using PlotCAD.Application.DTOs.Backoffice;
+using PlotCAD.Application.DTOs.Backoffice.Auth;
 using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Interfaces;
 using System.IdentityModel.Tokens.Jwt;

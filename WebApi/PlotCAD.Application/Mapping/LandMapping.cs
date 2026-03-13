@@ -1,5 +1,5 @@
 using AutoMapper;
-using PlotCAD.Application.DTOs.Land.List;
+using PlotCAD.Application.DTOs.PlotCad.Land.List;
 using PlotCAD.Domain.Entities;
 
 namespace PlotCAD.Application.Mapping

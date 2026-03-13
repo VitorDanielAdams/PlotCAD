@@ -1,7 +1,6 @@
-using PlotCAD.Application.DTOs.Auth;
 using PlotCAD.Application.DTOs.Common;
-using PlotCAD.Application.DTOs.Tenant;
-using PlotCAD.Application.DTOs.User;
+using PlotCAD.Application.DTOs.PlotCad.Tenant;
+using PlotCAD.Application.DTOs.PlotCad.User;
 using PlotCAD.Domain.Enums;
 
 namespace PlotCAD.Application.Services.Interfaces

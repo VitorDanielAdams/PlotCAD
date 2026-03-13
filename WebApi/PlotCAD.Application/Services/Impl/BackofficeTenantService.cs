@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
-using PlotCAD.Application.DTOs.Backoffice;
+using PlotCAD.Application.DTOs.Backoffice.Tenant;
+using PlotCAD.Application.DTOs.Common;
 using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Interfaces;
 using System.Text.Json;
@@ -25,11 +26,11 @@ namespace PlotCAD.Application.Services.Impl
             _logger = logger;
         }
 
-        public async Task<PagedResponse<BackofficeTenantResponse>> GetPagedAsync(BackofficeTenantListRequest request, CancellationToken ct = default)
+        public async Task<ListResponse<BackofficeTenantResponse>> GetPagedAsync(BackofficeTenantListRequest request, CancellationToken ct = default)
         {
-            _logger.LogInformation("Listing tenants: Page={Page}, PageSize={PageSize}", request.Page, request.PageSize);
+            _logger.LogInformation("Listing tenants: Page={Page}, PageSize={PageSize}", request.PageNumber, request.PageSize);
 
-            var tenants = await _tenantRepository.GetPagedAsync(request.Page, request.PageSize, request.Search, request.Status, ct);
+            var tenants = await _tenantRepository.GetPagedAsync(request.PageNumber, request.PageSize, request.Search, request.Status, ct);
             var count = await _tenantRepository.GetCountAsync(request.Search, request.Status, ct);
 
             var items = tenants.Select(t => new BackofficeTenantResponse(
@@ -44,7 +45,7 @@ namespace PlotCAD.Application.Services.Impl
                 t.Tenant.CreatedAt,
                 t.Tenant.UpdatedAt));
 
-            return new PagedResponse<BackofficeTenantResponse>(items, count, request.Page, request.PageSize);
+            return new ListResponse<BackofficeTenantResponse>(count, request.PageNumber, request.PageSize, items);
         }
 
         public async Task<BackofficeTenantResponse?> GetByIdAsync(Guid id, CancellationToken ct = default)

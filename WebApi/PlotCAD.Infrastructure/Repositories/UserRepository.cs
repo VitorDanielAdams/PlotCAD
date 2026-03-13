@@ -1,5 +1,5 @@
 using Dapper;
-using PlotCAD.Application.DTOs.User;
+using PlotCAD.Application.DTOs.PlotCad.User;
 using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.Domain.Entities;

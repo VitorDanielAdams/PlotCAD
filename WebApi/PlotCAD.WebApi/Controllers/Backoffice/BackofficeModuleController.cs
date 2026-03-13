@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using PlotCAD.Application.DTOs.Backoffice;
+using PlotCAD.Application.DTOs.Backoffice.Module;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.WebApi.Reponses;
 

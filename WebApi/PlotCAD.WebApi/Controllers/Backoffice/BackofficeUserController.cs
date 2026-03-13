@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using PlotCAD.Application.DTOs.Backoffice;
+using PlotCAD.Application.DTOs.Backoffice.User;
+using PlotCAD.Application.DTOs.Common;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.WebApi.Reponses;
 
@@ -25,13 +26,13 @@ namespace PlotCAD.WebApi.Controllers.Backoffice
         [HttpPost("list")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<ApiResponse<PagedResponse<BackofficeUserResponse>>>> List(
+        public async Task<ActionResult<ApiResponse<ListResponse<BackofficeUserResponse>>>> List(
             [FromBody] BackofficeUserListRequest request, CancellationToken ct)
         {
             try
             {
                 var result = await _userService.GetPagedAsync(request, ct);
-                return Ok(ApiResponse<PagedResponse<BackofficeUserResponse>>.Ok(result));
+                return Ok(ApiResponse<ListResponse<BackofficeUserResponse>>.Ok(result));
             }
             catch (Exception ex)
             {

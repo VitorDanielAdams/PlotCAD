@@ -1,6 +1,6 @@
 ﻿using PlotCAD.Application.DTOs.Common;
-using PlotCAD.Application.DTOs.Land;
-using PlotCAD.Application.DTOs.Land.List;
+using PlotCAD.Application.DTOs.PlotCad.Land;
+using PlotCAD.Application.DTOs.PlotCad.Land.List;
 
 namespace PlotCAD.Application.Services.Interfaces
 {

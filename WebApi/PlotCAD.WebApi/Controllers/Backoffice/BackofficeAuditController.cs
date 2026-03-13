@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using PlotCAD.Application.DTOs.Backoffice;
+using PlotCAD.Application.DTOs.Backoffice.AuditLog;
+using PlotCAD.Application.DTOs.Common;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.WebApi.Reponses;
 
@@ -25,19 +26,19 @@ namespace PlotCAD.WebApi.Controllers.Backoffice
         [HttpPost("list")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<ApiResponse<PagedResponse<AuditLogResponse>>>> List(
+        public async Task<ActionResult<ApiResponse<ListResponse<AuditLogResponse>>>> List(
             [FromBody] AuditLogListRequest request, CancellationToken ct)
         {
             try
             {
                 var result = await _auditLogService.GetPagedAsync(request, ct);
-                return Ok(ApiResponse<PagedResponse<AuditLogResponse>>.Ok(result));
+                return Ok(ApiResponse<ListResponse<AuditLogResponse>>.Ok(result));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while listing audit logs.");
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                    ApiResponse<object>.Fail("An error occurred while processing your request."));
+                    ApiResponse<object>.Fail("Ocorreu um erro ao processar a requisição"));
             }
         }
     }

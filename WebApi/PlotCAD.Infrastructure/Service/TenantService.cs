@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Caching.Distributed;
-using PlotCAD.Application.DTOs.Tenant;
+using PlotCAD.Application.DTOs.PlotCad.Tenant;
 using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.Domain.Entities;

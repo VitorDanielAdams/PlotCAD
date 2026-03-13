@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using PlotCAD.Application.DTOs.Backoffice;
+using PlotCAD.Application.DTOs.Backoffice.Auth;
+using PlotCAD.Application.DTOs.Backoffice.Manager;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.WebApi.Reponses;
+using System.Security.Authentication;
 
 namespace PlotCAD.WebApi.Controllers.Backoffice
 {
@@ -41,8 +43,7 @@ namespace PlotCAD.WebApi.Controllers.Backoffice
                 var response = await _authService.LoginAsync(request, ipAddress, ct);
 
                 AddBackofficeCookie(response.Token);
-
-                return Ok(ApiResponse<BackofficeLoginResponse>.Ok());
+                return Ok(ApiResponse<object>.Ok());
             }
             catch (UnauthorizedAccessException)
             {
@@ -59,7 +60,7 @@ namespace PlotCAD.WebApi.Controllers.Backoffice
 
         [HttpPost("logout")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
             var cookieName = _configuration["Backoffice:Jwt:CookieName"] ?? "BackofficeToken";
             Response.Cookies.Delete(cookieName, new CookieOptions
@@ -72,24 +73,35 @@ namespace PlotCAD.WebApi.Controllers.Backoffice
                 Path = "/api/backoffice/"
             });
 
-            return Ok(ApiResponse<object?>.Ok());
+            return Ok();
         }
 
         [HttpGet("me")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public IActionResult Me()
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<ApiResponse<ManagerResponseDto>>> Me()
         {
-            if (!_currentUser.IsAuthenticated)
+            if (_currentUser == null || !_currentUser.IsAuthenticated)
                 return Unauthorized(ApiResponse<object>.Fail("Not authenticated"));
 
-            return Ok(ApiResponse<object>.Ok(new
+            try
             {
-                id = _currentUser.ManagerId,
-                email = _currentUser.Email,
-                name = _currentUser.Name
-            }));
+                var response = new ManagerResponseDto(_currentUser.ManagerId!.Value, _currentUser.Name!, _currentUser.Email!);
+                return Ok(ApiResponse<ManagerResponseDto>.Ok(response));
+            }
+            catch (AuthenticationException ex)
+            {
+                _logger.LogWarning(ex, "Authentication error for current manager");
+                return Unauthorized(ApiResponse<object>.Fail("Invalid token"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving current manager");
+                return StatusCode(500, ApiResponse<object>.Fail("An error occurred"));
+            }
         }
+
 
         private void AddBackofficeCookie(string token)
         {

@@ -1,5 +1,5 @@
 using PlotCAD.Application.DTOs.Common;
-using PlotCAD.Application.DTOs.Employee;
+using PlotCAD.Application.DTOs.PlotCad.Employee;
 
 namespace PlotCAD.Application.Services.Interfaces
 {

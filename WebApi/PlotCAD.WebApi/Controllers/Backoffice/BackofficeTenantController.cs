@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using PlotCAD.Application.DTOs.Backoffice;
+using PlotCAD.Application.DTOs.Backoffice.Tenant;
+using PlotCAD.Application.DTOs.Common;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.WebApi.Reponses;
 
@@ -25,13 +26,13 @@ namespace PlotCAD.WebApi.Controllers.Backoffice
         [HttpPost("list")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<ApiResponse<PagedResponse<BackofficeTenantResponse>>>> List(
+        public async Task<ActionResult<ApiResponse<ListResponse<BackofficeTenantResponse>>>> List(
             [FromBody] BackofficeTenantListRequest request, CancellationToken ct)
         {
             try
             {
                 var result = await _tenantService.GetPagedAsync(request, ct);
-                return Ok(ApiResponse<PagedResponse<BackofficeTenantResponse>>.Ok(result));
+                return Ok(ApiResponse<ListResponse<BackofficeTenantResponse>>.Ok(result));
             }
             catch (Exception ex)
             {

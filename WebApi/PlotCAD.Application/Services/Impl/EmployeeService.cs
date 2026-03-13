@@ -1,6 +1,6 @@
 using AutoMapper;
 using PlotCAD.Application.DTOs.Common;
-using PlotCAD.Application.DTOs.Employee;
+using PlotCAD.Application.DTOs.PlotCad.Employee;
 using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.Domain.Entities;

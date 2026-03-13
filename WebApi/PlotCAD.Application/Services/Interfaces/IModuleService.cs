@@ -1,4 +1,4 @@
-using PlotCAD.Application.DTOs.Backoffice;
+using PlotCAD.Application.DTOs.Backoffice.Module;
 using PlotCAD.Domain.Entities;
 
 namespace PlotCAD.Application.Services.Interfaces

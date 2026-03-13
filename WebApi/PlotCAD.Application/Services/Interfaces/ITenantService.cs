@@ -1,4 +1,4 @@
-using PlotCAD.Application.DTOs.Tenant;
+using PlotCAD.Application.DTOs.PlotCad.Tenant;
 using PlotCAD.Domain.Entities;
 using PlotCAD.Domain.Enums;
 

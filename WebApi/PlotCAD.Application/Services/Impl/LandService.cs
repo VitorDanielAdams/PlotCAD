@@ -1,8 +1,8 @@
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 using PlotCAD.Application.DTOs.Common;
-using PlotCAD.Application.DTOs.Land;
-using PlotCAD.Application.DTOs.Land.List;
+using PlotCAD.Application.DTOs.PlotCad.Land;
+using PlotCAD.Application.DTOs.PlotCad.Land.List;
 using PlotCAD.Application.Repositories;
 using PlotCAD.Application.Services.Interfaces;
 using PlotCAD.Domain.Entities;
